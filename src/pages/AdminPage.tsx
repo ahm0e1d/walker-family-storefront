@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Plus, Save, Trash2, Edit2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Save, Trash2, Edit2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +13,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useShop } from "@/context/ShopContext";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 
 const AdminPage = () => {
   const { products, updateProduct, addProduct, deleteProduct } = useShop();
+  const { isOwnerLoggedIn, logout } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -29,6 +33,21 @@ const AdminPage = () => {
     image: "",
     rating: "5",
   });
+
+  // Redirect if not logged in
+  if (!isOwnerLoggedIn) {
+    navigate("/login");
+    return null;
+  }
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "تم تسجيل الخروج",
+      description: "تم تسجيل خروجك بنجاح",
+    });
+    navigate("/");
+  };
 
   const resetForm = () => {
     setFormData({
@@ -99,96 +118,109 @@ const AdminPage = () => {
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold text-foreground">لوحة التحكم</h1>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
-                <Plus className="w-5 h-5 ml-2" />
-                إضافة منتج
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-card border-border">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 mt-4">
-                <div>
-                  <Label>اسم المنتج</Label>
-                  <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="أدخل اسم المنتج"
-                    className="bg-input border-border"
-                  />
-                </div>
-                <div>
-                  <Label>الوصف</Label>
-                  <Input
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="وصف المنتج"
-                    className="bg-input border-border"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>السعر</Label>
-                    <Input
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="0"
-                      className="bg-input border-border"
-                    />
-                  </div>
-                  <div>
-                    <Label>الكمية</Label>
-                    <Input
-                      type="number"
-                      value={formData.quantity}
-                      onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                      placeholder="0"
-                      className="bg-input border-border"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>الأيقونة (إيموجي)</Label>
-                    <Input
-                      value={formData.image}
-                      onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                      placeholder="📦"
-                      className="bg-input border-border"
-                    />
-                  </div>
-                  <div>
-                    <Label>التقييم (1-5)</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="5"
-                      value={formData.rating}
-                      onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-                      className="bg-input border-border"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleSubmit}
-                  className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
-                >
-                  <Save className="w-5 h-5 ml-2" />
-                  {editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}
+          <div>
+            <h1 className="text-4xl font-bold text-foreground">لوحة التحكم</h1>
+            <p className="text-muted-foreground mt-1">مرحباً بك أيها المالك</p>
+          </div>
+          <div className="flex gap-3">
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) resetForm();
+            }}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
+                  <Plus className="w-5 h-5 ml-2" />
+                  إضافة منتج
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="bg-card border-border">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label>اسم المنتج</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="أدخل اسم المنتج"
+                      className="bg-input border-border"
+                    />
+                  </div>
+                  <div>
+                    <Label>الوصف</Label>
+                    <Input
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      placeholder="وصف المنتج"
+                      className="bg-input border-border"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>السعر</Label>
+                      <Input
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        placeholder="0"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                    <div>
+                      <Label>الكمية</Label>
+                      <Input
+                        type="number"
+                        value={formData.quantity}
+                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                        placeholder="0"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>الأيقونة (إيموجي)</Label>
+                      <Input
+                        value={formData.image}
+                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                        placeholder="📦"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                    <div>
+                      <Label>التقييم (1-5)</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="5"
+                        value={formData.rating}
+                        onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                        className="bg-input border-border"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleSubmit}
+                    className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
+                  >
+                    <Save className="w-5 h-5 ml-2" />
+                    {editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <LogOut className="w-5 h-5 ml-2" />
+              تسجيل الخروج
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4">
