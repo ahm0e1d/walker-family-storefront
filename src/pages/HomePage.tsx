@@ -1,8 +1,9 @@
+import { Loader2 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useShop } from "@/context/ShopContext";
 
 const HomePage = () => {
-  const { products } = useShop();
+  const { products, loading } = useShop();
 
   return (
     <div className="min-h-screen">
@@ -24,11 +25,17 @@ const HomePage = () => {
           <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
             منتجاتنا
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

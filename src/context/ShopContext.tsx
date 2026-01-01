@@ -1,17 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Product, CartItem } from "@/types/product";
-import { initialProducts } from "@/data/products";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ShopContextType {
   products: Product[];
   cart: CartItem[];
+  loading: boolean;
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  updateProduct: (product: Product) => void;
-  addProduct: (product: Omit<Product, "id">) => void;
-  deleteProduct: (productId: string) => void;
+  updateProduct: (product: Product) => Promise<void>;
+  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
+  refreshProducts: () => Promise<void>;
   cartTotal: number;
   cartItemsCount: number;
 }
@@ -19,23 +21,39 @@ interface ShopContextType {
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
 
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [products, setProducts] = useState<Product[]>(() => {
-    const saved = localStorage.getItem("walker-products");
-    return saved ? JSON.parse(saved) : initialProducts;
-  });
-
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem("walker-cart");
     return saved ? JSON.parse(saved) : [];
   });
 
+  const fetchProducts = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching products:", error);
+    } else if (data) {
+      setProducts(data);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    localStorage.setItem("walker-products", JSON.stringify(products));
-  }, [products]);
+    fetchProducts();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("walker-cart", JSON.stringify(cart));
   }, [cart]);
+
+  const refreshProducts = async () => {
+    await fetchProducts();
+  };
 
   const addToCart = (product: Product) => {
     setCart((prev) => {
@@ -69,22 +87,57 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearCart = () => setCart([]);
 
-  const updateProduct = (product: Product) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? product : p))
-    );
+  const updateProduct = async (product: Product) => {
+    const { error } = await supabase
+      .from("products")
+      .update({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        quantity: product.quantity,
+        image: product.image,
+        rating: product.rating,
+      })
+      .eq("id", product.id);
+
+    if (error) {
+      console.error("Error updating product:", error);
+      throw error;
+    }
+    
+    await fetchProducts();
   };
 
-  const addProduct = (product: Omit<Product, "id">) => {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString(),
-    };
-    setProducts((prev) => [...prev, newProduct]);
+  const addProduct = async (product: Omit<Product, "id">) => {
+    const { error } = await supabase.from("products").insert({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      quantity: product.quantity,
+      image: product.image,
+      rating: product.rating,
+    });
+
+    if (error) {
+      console.error("Error adding product:", error);
+      throw error;
+    }
+    
+    await fetchProducts();
   };
 
-  const deleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  const deleteProduct = async (productId: string) => {
+    const { error } = await supabase
+      .from("products")
+      .delete()
+      .eq("id", productId);
+
+    if (error) {
+      console.error("Error deleting product:", error);
+      throw error;
+    }
+    
+    await fetchProducts();
   };
 
   const cartTotal = cart.reduce(
@@ -99,6 +152,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         products,
         cart,
+        loading,
         addToCart,
         removeFromCart,
         updateCartQuantity,
@@ -106,6 +160,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProduct,
         addProduct,
         deleteProduct,
+        refreshProducts,
         cartTotal,
         cartItemsCount,
       }}
