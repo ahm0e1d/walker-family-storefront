@@ -40,13 +40,13 @@ export const sendPurchaseWebhook = async (data: PurchaseData) => {
   };
 
   try {
-    await fetch(PURCHASE_WEBHOOK, {
+    const response = await fetch(PURCHASE_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      mode: "no-cors",
       body: JSON.stringify({ embeds: [embed] }),
     });
-    return true;
+    console.log("Purchase webhook response:", response.status);
+    return response.ok;
   } catch (error) {
     console.error("Error sending purchase webhook:", error);
     return false;
@@ -70,13 +70,13 @@ export const sendComplaintWebhook = async (data: ComplaintData) => {
   };
 
   try {
-    await fetch(COMPLAINT_WEBHOOK, {
+    const response = await fetch(COMPLAINT_WEBHOOK, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      mode: "no-cors",
       body: JSON.stringify({ embeds: [embed] }),
     });
-    return true;
+    console.log("Complaint webhook response:", response.status);
+    return response.ok;
   } catch (error) {
     console.error("Error sending complaint webhook:", error);
     return false;
