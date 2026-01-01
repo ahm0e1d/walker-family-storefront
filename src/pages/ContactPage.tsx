@@ -10,16 +10,16 @@ import { sendComplaintWebhook } from "@/lib/webhooks";
 
 const ContactPage = () => {
   const { toast } = useToast();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+  const [characterName, setCharacterName] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [discordUsername, setDiscordUsername] = useState("");
+  const [complaint, setComplaint] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !email || !subject || !message) {
+    if (!characterName || !accountName || !discordUsername || !complaint) {
       toast({
         title: "خطأ",
         description: "الرجاء ملء جميع الحقول",
@@ -30,69 +30,68 @@ const ContactPage = () => {
 
     setIsSubmitting(true);
 
-    await sendComplaintWebhook({ name, email, subject, message });
+    await sendComplaintWebhook({ characterName, accountName, discordUsername, complaint });
 
     setIsSubmitting(false);
     toast({
       title: "تم الإرسال",
-      description: "تم إرسال رسالتك بنجاح، سنتواصل معك قريباً",
+      description: "تم إرسال شكواك بنجاح، سنتواصل معك قريباً",
     });
 
-    setName("");
-    setEmail("");
-    setSubject("");
-    setMessage("");
+    setCharacterName("");
+    setAccountName("");
+    setDiscordUsername("");
+    setComplaint("");
   };
 
   return (
     <div className="min-h-screen py-12">
       <div className="container mx-auto px-4 max-w-2xl">
-        <h1 className="text-4xl font-bold text-foreground mb-8 text-center">تواصل معنا</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-8 text-center">الشكاوى</h1>
 
         <Card className="p-8 bg-card border-border">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="name">الاسم</Label>
+                <Label htmlFor="characterName">اسم الشخصية</Label>
                 <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="أدخل اسمك"
+                  id="characterName"
+                  value={characterName}
+                  onChange={(e) => setCharacterName(e.target.value)}
+                  placeholder="أدخل اسم الشخصية"
                   className="bg-input border-border"
                 />
               </div>
               <div>
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="accountName">اسم الحساب</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="أدخل بريدك الإلكتروني"
+                  id="accountName"
+                  value={accountName}
+                  onChange={(e) => setAccountName(e.target.value)}
+                  placeholder="أدخل اسم الحساب"
                   className="bg-input border-border"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="subject">الموضوع</Label>
+              <Label htmlFor="discordUsername">يوزر الديسكورد</Label>
               <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="موضوع الرسالة"
+                id="discordUsername"
+                value={discordUsername}
+                onChange={(e) => setDiscordUsername(e.target.value)}
+                placeholder="أدخل يوزر الديسكورد"
                 className="bg-input border-border"
               />
             </div>
 
             <div>
-              <Label htmlFor="message">الرسالة</Label>
+              <Label htmlFor="complaint">الشكوى</Label>
               <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="اكتب رسالتك هنا..."
+                id="complaint"
+                value={complaint}
+                onChange={(e) => setComplaint(e.target.value)}
+                placeholder="اكتب شكواك هنا..."
                 rows={6}
                 className="bg-input border-border"
               />
@@ -104,7 +103,7 @@ const ContactPage = () => {
               className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6 text-lg"
             >
               <Send className="w-5 h-5 ml-2" />
-              {isSubmitting ? "جاري الإرسال..." : "إرسال الرسالة"}
+              {isSubmitting ? "جاري الإرسال..." : "إرسال الشكوى"}
             </Button>
           </form>
         </Card>

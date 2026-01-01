@@ -2,8 +2,10 @@ const PURCHASE_WEBHOOK = "https://discord.com/api/webhooks/1455151545695080459/Y
 const COMPLAINT_WEBHOOK = "https://discord.com/api/webhooks/1455640996955291698/h3593UQNNnG4_syGS3YFSfOXjnTIfYFn3WB4gy9aZ998hTpMYcNIjAfBT4D4zn_gpuD9";
 
 interface PurchaseData {
-  customerName: string;
-  customerEmail: string;
+  accountName: string;
+  characterName: string;
+  discordUsername: string;
+  oderId: string;
   items: Array<{
     name: string;
     quantity: number;
@@ -13,10 +15,10 @@ interface PurchaseData {
 }
 
 interface ComplaintData {
-  name: string;
-  email: string;
-  subject: string;
-  message: string;
+  characterName: string;
+  accountName: string;
+  discordUsername: string;
+  complaint: string;
 }
 
 export const sendPurchaseWebhook = async (data: PurchaseData) => {
@@ -28,8 +30,10 @@ export const sendPurchaseWebhook = async (data: PurchaseData) => {
     title: "🛒 طلب شراء جديد",
     color: 0xdc2626,
     fields: [
-      { name: "👤 اسم العميل", value: data.customerName, inline: true },
-      { name: "📧 البريد الإلكتروني", value: data.customerEmail, inline: true },
+      { name: "👤 اسم الحساب", value: data.accountName, inline: true },
+      { name: "🎮 اسم الشخصية", value: data.characterName, inline: true },
+      { name: "💬 يوزر الديسكورد", value: data.discordUsername, inline: true },
+      { name: "🆔 الايدي", value: data.oderId, inline: true },
       { name: "📦 المنتجات", value: itemsList, inline: false },
       { name: "💰 المجموع الكلي", value: `${data.total.toLocaleString()}`, inline: true },
     ],
@@ -55,13 +59,13 @@ export const sendPurchaseWebhook = async (data: PurchaseData) => {
 
 export const sendComplaintWebhook = async (data: ComplaintData) => {
   const embed = {
-    title: "📝 شكوى/رسالة جديدة",
+    title: "📝 شكوى جديدة",
     color: 0xfbbf24,
     fields: [
-      { name: "👤 الاسم", value: data.name, inline: true },
-      { name: "📧 البريد الإلكتروني", value: data.email, inline: true },
-      { name: "📋 الموضوع", value: data.subject, inline: false },
-      { name: "💬 الرسالة", value: data.message, inline: false },
+      { name: "🎮 اسم الشخصية", value: data.characterName, inline: true },
+      { name: "👤 اسم الحساب", value: data.accountName, inline: true },
+      { name: "💬 يوزر الديسكورد", value: data.discordUsername, inline: true },
+      { name: "📋 الشكوى", value: data.complaint, inline: false },
     ],
     timestamp: new Date().toISOString(),
     footer: {

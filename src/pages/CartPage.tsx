@@ -11,8 +11,10 @@ import { sendPurchaseWebhook } from "@/lib/webhooks";
 const CartPage = () => {
   const { cart, updateCartQuantity, removeFromCart, clearCart, cartTotal } = useShop();
   const { toast } = useToast();
-  const [customerName, setCustomerName] = useState("");
-  const [customerEmail, setCustomerEmail] = useState("");
+  const [accountName, setAccountName] = useState("");
+  const [characterName, setCharacterName] = useState("");
+  const [discordUsername, setDiscordUsername] = useState("");
+  const [orderId, setOrderId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatPrice = (price: number) => {
@@ -20,10 +22,10 @@ const CartPage = () => {
   };
 
   const handleCheckout = async () => {
-    if (!customerName || !customerEmail) {
+    if (!accountName || !characterName || !discordUsername || !orderId) {
       toast({
         title: "خطأ",
-        description: "الرجاء إدخال الاسم والبريد الإلكتروني",
+        description: "الرجاء ملء جميع الحقول",
         variant: "destructive",
       });
       return;
@@ -41,8 +43,10 @@ const CartPage = () => {
     setIsSubmitting(true);
 
     const success = await sendPurchaseWebhook({
-      customerName,
-      customerEmail,
+      accountName,
+      characterName,
+      discordUsername,
+      oderId: orderId,
       items: cart.map((item) => ({
         name: item.name,
         quantity: item.cartQuantity,
@@ -59,8 +63,10 @@ const CartPage = () => {
         description: "سنتواصل معك قريباً",
       });
       clearCart();
-      setCustomerName("");
-      setCustomerEmail("");
+      setAccountName("");
+      setCharacterName("");
+      setDiscordUsername("");
+      setOrderId("");
     } else {
       toast({
         title: "تم إرسال الطلب",
@@ -144,23 +150,42 @@ const CartPage = () => {
 
               <div className="space-y-4 mb-6">
                 <div>
-                  <Label htmlFor="name">الاسم</Label>
+                  <Label htmlFor="accountName">اسم الحساب</Label>
                   <Input
-                    id="name"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="أدخل اسمك"
+                    id="accountName"
+                    value={accountName}
+                    onChange={(e) => setAccountName(e.target.value)}
+                    placeholder="أدخل اسم الحساب"
                     className="bg-input border-border"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email">البريد الإلكتروني</Label>
+                  <Label htmlFor="characterName">اسم الشخصية</Label>
                   <Input
-                    id="email"
-                    type="email"
-                    value={customerEmail}
-                    onChange={(e) => setCustomerEmail(e.target.value)}
-                    placeholder="أدخل بريدك الإلكتروني"
+                    id="characterName"
+                    value={characterName}
+                    onChange={(e) => setCharacterName(e.target.value)}
+                    placeholder="أدخل اسم الشخصية"
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="discordUsername">يوزر الديسكورد</Label>
+                  <Input
+                    id="discordUsername"
+                    value={discordUsername}
+                    onChange={(e) => setDiscordUsername(e.target.value)}
+                    placeholder="أدخل يوزر الديسكورد"
+                    className="bg-input border-border"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="orderId">الايدي</Label>
+                  <Input
+                    id="orderId"
+                    value={orderId}
+                    onChange={(e) => setOrderId(e.target.value)}
+                    placeholder="أدخل الايدي"
                     className="bg-input border-border"
                   />
                 </div>
