@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,12 +18,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 
 const AdminPage = () => {
-  const { products, updateProduct, addProduct, deleteProduct } = useShop();
+  const { products, loading, updateProduct, addProduct, deleteProduct } = useShop();
   const { isOwnerLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -74,7 +75,7 @@ const AdminPage = () => {
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.name || !formData.price || !formData.quantity) {
       toast({
         title: "خطأ",
@@ -83,6 +84,8 @@ const AdminPage = () => {
       });
       return;
     }
+
+    setIsSaving(true);
 
     const productData = {
       name: formData.name,
@@ -93,26 +96,51 @@ const AdminPage = () => {
       rating: parseInt(formData.rating) || 5,
     };
 
-    if (editingProduct) {
-      updateProduct({ ...productData, id: editingProduct.id });
-      toast({ title: "تم التحديث", description: "تم تحديث المنتج بنجاح" });
-    } else {
-      addProduct(productData);
-      toast({ title: "تم الإضافة", description: "تم إضافة المنتج بنجاح" });
+    try {
+      if (editingProduct) {
+        await updateProduct({ ...productData, id: editingProduct.id });
+        toast({ title: "تم التحديث", description: "تم تحديث المنتج بنجاح" });
+      } else {
+        await addProduct(productData);
+        toast({ title: "تم الإضافة", description: "تم إضافة المنتج بنجاح" });
+      }
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحفظ",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsDialogOpen(false);
-    resetForm();
   };
 
-  const handleDelete = (productId: string) => {
-    deleteProduct(productId);
-    toast({ title: "تم الحذف", description: "تم حذف المنتج بنجاح" });
+  const handleDelete = async (productId: string) => {
+    try {
+      await deleteProduct(productId);
+      toast({ title: "تم الحذف", description: "تم حذف المنتج بنجاح" });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحذف",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("ar-SA").format(price);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-12">
@@ -204,9 +232,14 @@ const AdminPage = () => {
                   </div>
                   <Button
                     onClick={handleSubmit}
+                    disabled={isSaving}
                     className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
                   >
-                    <Save className="w-5 h-5 ml-2" />
+                    {isSaving ? (
+                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                    ) : (
+                      <Save className="w-5 h-5 ml-2" />
+                    )}
                     {editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}
                   </Button>
                 </div>
