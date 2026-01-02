@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 const Navbar = () => {
   const location = useLocation();
   const { cartItemsCount } = useShop();
-  const { isOwnerLoggedIn, logout } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
 
   const links = [
     { path: "/", label: "الرئيسية", icon: Home },
@@ -16,6 +16,10 @@ const Navbar = () => {
     { path: "/cart", label: "السلة", icon: ShoppingCart, badge: cartItemsCount },
     { path: "/contact", label: "تواصل معنا", icon: MessageCircle },
   ];
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
@@ -50,23 +54,25 @@ const Navbar = () => {
               );
             })}
 
-            {isOwnerLoggedIn ? (
+            {user ? (
               <>
-                <Link
-                  to="/admin"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    location.pathname === "/admin"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">الإدارة</span>
-                </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                      location.pathname === "/admin"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span className="font-medium">الإدارة</span>
+                  </Link>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
                   <LogOut className="w-4 h-4 ml-1" />

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2 } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 
 const AdminPage = () => {
-  const { products, loading, updateProduct, addProduct, deleteProduct } = useShop();
-  const { isOwnerLoggedIn, logout } = useAuth();
+  const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -35,14 +35,14 @@ const AdminPage = () => {
     rating: "5",
   });
 
-  // Redirect if not logged in
-  if (!isOwnerLoggedIn) {
-    navigate("/login");
-    return null;
-  }
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login");
+    }
+  }, [user, authLoading, navigate]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     toast({
       title: "تم تسجيل الخروج",
       description: "تم تسجيل خروجك بنجاح",
@@ -109,7 +109,7 @@ const AdminPage = () => {
     } catch (error) {
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء الحفظ",
+        description: "حدث خطأ أثناء الحفظ. تأكد من أن لديك صلاحيات الإدارة.",
         variant: "destructive",
       });
     } finally {
@@ -124,7 +124,7 @@ const AdminPage = () => {
     } catch (error) {
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء الحذف",
+        description: "حدث خطأ أثناء الحذف. تأكد من أن لديك صلاحيات الإدارة.",
         variant: "destructive",
       });
     }
@@ -134,10 +134,33 @@ const AdminPage = () => {
     return new Intl.NumberFormat("ar-SA").format(price);
   };
 
-  if (loading) {
+  if (authLoading || productsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-12 h-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-12 px-4">
+        <Card className="p-8 text-center max-w-md">
+          <ShieldAlert className="w-16 h-16 mx-auto mb-4 text-destructive" />
+          <h1 className="text-2xl font-bold text-foreground mb-2">غير مصرح</h1>
+          <p className="text-muted-foreground mb-6">
+            ليس لديك صلاحيات الوصول إلى لوحة التحكم. تواصل مع المالك لمنحك صلاحيات الإدارة.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button onClick={() => navigate("/")} variant="outline">
+              العودة للرئيسية
+            </Button>
+            <Button onClick={handleLogout} variant="destructive">
+              <LogOut className="w-4 h-4 ml-2" />
+              تسجيل الخروج
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -148,7 +171,7 @@ const AdminPage = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold text-foreground">لوحة التحكم</h1>
-            <p className="text-muted-foreground mt-1">مرحباً بك أيها المالك</p>
+            <p className="text-muted-foreground mt-1">مرحباً بك، {user?.email}</p>
           </div>
           <div className="flex gap-3">
             <Dialog open={isDialogOpen} onOpenChange={(open) => {
