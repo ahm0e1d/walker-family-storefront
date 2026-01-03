@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut, Users, UserCircle } from "lucide-react";
+import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut, UserCircle, History } from "lucide-react";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +103,17 @@ const Navbar = () => {
               </>
             ) : shopUser ? (
               <>
+                <Link
+                  to="/orders"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    location.pathname === "/orders"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <History className="w-5 h-5" />
+                  <span className="font-medium">طلباتي</span>
+                </Link>
                 <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full">
                   <UserCircle className="w-4 h-4" />
                   <span className="text-sm font-medium">{shopUser.discord_username}</span>
