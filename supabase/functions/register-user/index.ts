@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1455151545695080459/Yh79KZFAKIGdJ9xf0sZG5ssFpnPidW8Dh5JMnQYQ957TVDSPZHmcIGNpoTMkJ6L6xY_Z";
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457132689563062424/qfdrnt0rcubQqRzlkWjIvMNrj4pfPHf25Dk6Xz9_hh6ChXPe359iPFEpqu9D94Msrdgt";
 
 interface RegisterRequest {
   email: string;
@@ -127,6 +127,7 @@ serve(async (req: Request) => {
           title: "📝 طلب تسجيل جديد",
           color: 0xFFA500,
           fields: [
+            { name: "🆔 ID التسجيل", value: newUser.id, inline: false },
             { name: "📧 الإيميل", value: email, inline: true },
             { name: "🎮 يوزر Discord", value: discord_username, inline: true },
             { name: "📅 التاريخ", value: new Date().toLocaleString("ar-SA"), inline: false }
