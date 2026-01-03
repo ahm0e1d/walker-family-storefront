@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,11 @@ const AdminPage = () => {
   const [savingCategory, setSavingCategory] = useState(false);
   const [savingRule, setSavingRule] = useState(false);
 
+  // Admins state
+  const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
+  const [adminsLoading, setAdminsLoading] = useState(true);
+  const [managingAdmin, setManagingAdmin] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -127,8 +132,26 @@ const AdminPage = () => {
       fetchOrders();
       fetchApprovedUsers();
       fetchRulesData();
+      fetchAdmins();
     }
   }, [isAdmin]);
+
+  const fetchAdmins = async () => {
+    setAdminsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+
+      if (error) throw error;
+      setAdminUserIds((data || []).map(r => r.user_id));
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+    } finally {
+      setAdminsLoading(false);
+    }
+  };
 
   const fetchRulesData = async () => {
     setRulesLoading(true);
@@ -322,6 +345,43 @@ const AdminPage = () => {
       });
     } finally {
       setDeactivatingUser(null);
+    }
+  };
+
+  // Admin management functions
+  const handleManageAdmin = async (userId: string, action: "add" | "remove") => {
+    setManagingAdmin(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-admin", {
+        body: { approved_user_id: userId, action },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "خطأ",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم!",
+        description: data.message,
+      });
+
+      fetchAdmins();
+    } catch (error) {
+      console.error("Manage admin error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تنفيذ العملية",
+        variant: "destructive",
+      });
+    } finally {
+      setManagingAdmin(null);
     }
   };
 
@@ -634,7 +694,7 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
@@ -660,6 +720,10 @@ const AdminPage = () => {
             <TabsTrigger value="approved-users" className="flex items-center gap-2">
               <UserCheck className="w-4 h-4" />
               المفعلين
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              الأدمنية
             </TabsTrigger>
             <TabsTrigger value="rules" className="flex items-center gap-2">
               <ScrollText className="w-4 h-4" />
@@ -1060,6 +1124,111 @@ const AdminPage = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="admins">
+            <div className="flex justify-end mb-6">
+              <Button onClick={() => { fetchAdmins(); fetchApprovedUsers(); }} variant="outline" size="sm">
+                <RefreshCw className={`w-4 h-4 ml-2 ${adminsLoading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Current Admins */}
+              <div>
+                <h2 className="text-xl font-bold mb-4">الأدمنية الحاليين</h2>
+                {adminsLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : adminUserIds.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      لا يوجد أدمنية
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {approvedUsers
+                      .filter(u => adminUserIds.includes(u.id))
+                      .map((adminUser) => (
+                        <Card key={adminUser.id}>
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{adminUser.discord_username}</p>
+                              <p className="text-sm text-muted-foreground">{adminUser.email}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleManageAdmin(adminUser.id, "remove")}
+                              disabled={managingAdmin === adminUser.id}
+                            >
+                              {managingAdmin === adminUser.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <X className="w-4 h-4 ml-1" />
+                                  إزالة
+                                </>
+                              )}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Admin from Approved Users */}
+              <div>
+                <h2 className="text-xl font-bold mb-4">إضافة أدمن جديد</h2>
+                {approvedUsersLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : approvedUsers.filter(u => !adminUserIds.includes(u.id)).length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      لا يوجد مستخدمين متاحين للترقية
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {approvedUsers
+                      .filter(u => !adminUserIds.includes(u.id))
+                      .map((normalUser) => (
+                        <Card key={normalUser.id}>
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">{normalUser.discord_username}</p>
+                              <p className="text-sm text-muted-foreground">{normalUser.email}</p>
+                            </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleManageAdmin(normalUser.id, "add")}
+                              disabled={managingAdmin === normalUser.id}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              {managingAdmin === normalUser.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Shield className="w-4 h-4 ml-1" />
+                                  ترقية لأدمن
+                                </>
+                              )}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="rules">
