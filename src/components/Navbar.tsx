@@ -79,30 +79,17 @@ const Navbar = () => {
             {user ? (
               <>
                 {isAdmin && (
-                  <>
-                    <Link
-                      to="/admin"
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        location.pathname === "/admin"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <Settings className="w-5 h-5" />
-                      <span className="font-medium">الإدارة</span>
-                    </Link>
-                    <Link
-                      to="/pending-users"
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                        location.pathname === "/pending-users"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <Users className="w-5 h-5" />
-                      <span className="font-medium">الطلبات</span>
-                    </Link>
-                  </>
+                  <Link
+                    to="/admin"
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                      location.pathname === "/admin"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span className="font-medium">الإدارة</span>
+                  </Link>
                 )}
                 <Button
                   variant="ghost"

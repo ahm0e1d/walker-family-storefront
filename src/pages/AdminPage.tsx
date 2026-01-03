@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 
+interface PendingUser {
+  id: string;
+  email: string;
+  discord_username: string;
+  created_at: string;
+  status: string;
+}
+
 const AdminPage = () => {
   const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -27,6 +36,11 @@ const AdminPage = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  
+  // Pending users state
+  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -42,6 +56,69 @@ const AdminPage = () => {
       navigate("/login");
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchPendingUsers();
+    }
+  }, [isAdmin]);
+
+  const fetchPendingUsers = async () => {
+    setPendingLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("pending_users")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setPendingUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+    } finally {
+      setPendingLoading(false);
+    }
+  };
+
+  const handleUserAction = async (userId: string, action: "approve" | "reject") => {
+    setActionLoading(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("approve-user", {
+        body: {
+          pending_user_id: userId,
+          action,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "خطأ",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم!",
+        description: data.message,
+      });
+
+      setPendingUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error("Action error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تنفيذ العملية",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -215,181 +292,276 @@ const AdminPage = () => {
             <h1 className="text-4xl font-bold text-foreground">لوحة التحكم</h1>
             <p className="text-muted-foreground mt-1">مرحباً بك، {user?.email}</p>
           </div>
-          <div className="flex gap-3">
-            <Dialog open={isDialogOpen} onOpenChange={(open) => {
-              setIsDialogOpen(open);
-              if (!open) resetForm();
-            }}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
-                  <Plus className="w-5 h-5 ml-2" />
-                  إضافة منتج
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-card border-border">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
-                  <div>
-                    <Label>اسم المنتج</Label>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="أدخل اسم المنتج"
-                      className="bg-input border-border"
-                    />
-                  </div>
-                  <div>
-                    <Label>الوصف</Label>
-                    <Input
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      placeholder="وصف المنتج"
-                      className="bg-input border-border"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>السعر</Label>
-                      <Input
-                        type="number"
-                        value={formData.price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        placeholder="0"
-                        className="bg-input border-border"
-                      />
-                    </div>
-                    <div>
-                      <Label>الكمية</Label>
-                      <Input
-                        type="number"
-                        value={formData.quantity}
-                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                        placeholder="0"
-                        className="bg-input border-border"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label>صورة المنتج (رابط أو إيموجي)</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={formData.image}
-                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                          placeholder="📦 أو رابط صورة"
-                          className="bg-input border-border flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={handleGenerateImage}
-                          disabled={isGeneratingImage || !formData.name}
-                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
-                        >
-                          {isGeneratingImage ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Sparkles className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                      {formData.image.startsWith('http') && (
-                        <div className="mt-2">
-                          <img 
-                            src={formData.image} 
-                            alt="معاينة" 
-                            className="w-20 h-20 object-cover rounded-lg"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label>التقييم (1-5)</Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={formData.rating}
-                        onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-                        className="bg-input border-border"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={isSaving}
-                    className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
-                  >
-                    {isSaving ? (
-                      <Loader2 className="w-5 h-5 ml-2 animate-spin" />
-                    ) : (
-                      <Save className="w-5 h-5 ml-2" />
-                    )}
-                    {editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="w-5 h-5 ml-2" />
-              تسجيل الخروج
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+          >
+            <LogOut className="w-5 h-5 ml-2" />
+            تسجيل الخروج
+          </Button>
         </div>
 
-        <div className="grid gap-4">
-          {products.map((product) => (
-            <Card key={product.id} className="p-6 bg-card border-border">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
-                  {product.image.startsWith('http') ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-3xl">{product.image}</span>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
-                  <p className="text-muted-foreground text-sm">{product.description}</p>
-                </div>
-                <div className="text-center px-4">
-                  <p className="text-sm text-muted-foreground">السعر</p>
-                  <p className="font-bold text-accent">{formatPrice(product.price)}</p>
-                </div>
-                <div className="text-center px-4">
-                  <p className="text-sm text-muted-foreground">الكمية</p>
-                  <p className="font-bold text-foreground">{product.quantity}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleEdit(product)}
-                    className="border-border hover:bg-primary hover:text-primary-foreground"
-                  >
-                    <Edit2 className="w-4 h-4" />
+        <Tabs defaultValue="products" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              المنتجات
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              طلبات التسجيل
+              {pendingUsers.length > 0 && (
+                <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
+                  {pendingUsers.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="products">
+            <div className="flex justify-end mb-6">
+              <Dialog open={isDialogOpen} onOpenChange={(open) => {
+                setIsDialogOpen(open);
+                if (!open) resetForm();
+              }}>
+                <DialogTrigger asChild>
+                  <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
+                    <Plus className="w-5 h-5 ml-2" />
+                    إضافة منتج
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleDelete(product.id)}
-                    className="border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                </DialogTrigger>
+                <DialogContent className="bg-card border-border">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>اسم المنتج</Label>
+                      <Input
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="أدخل اسم المنتج"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                    <div>
+                      <Label>الوصف</Label>
+                      <Input
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="وصف المنتج"
+                        className="bg-input border-border"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>السعر</Label>
+                        <Input
+                          type="number"
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                          placeholder="0"
+                          className="bg-input border-border"
+                        />
+                      </div>
+                      <div>
+                        <Label>الكمية</Label>
+                        <Input
+                          type="number"
+                          value={formData.quantity}
+                          onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                          placeholder="0"
+                          className="bg-input border-border"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>صورة المنتج (رابط أو إيموجي)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={formData.image}
+                            onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                            placeholder="📦 أو رابط صورة"
+                            className="bg-input border-border flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleGenerateImage}
+                            disabled={isGeneratingImage || !formData.name}
+                            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                          >
+                            {isGeneratingImage ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                        {formData.image.startsWith('http') && (
+                          <div className="mt-2">
+                            <img 
+                              src={formData.image} 
+                              alt="معاينة" 
+                              className="w-20 h-20 object-cover rounded-lg"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <Label>التقييم (1-5)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="5"
+                          value={formData.rating}
+                          onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
+                          className="bg-input border-border"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSaving}
+                      className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
+                    >
+                      {isSaving ? (
+                        <Loader2 className="w-5 h-5 ml-2 animate-spin" />
+                      ) : (
+                        <Save className="w-5 h-5 ml-2" />
+                      )}
+                      {editingProduct ? "حفظ التعديلات" : "إضافة المنتج"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-4">
+              {products.map((product) => (
+                <Card key={product.id} className="p-6 bg-card border-border">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                      {product.image.startsWith('http') ? (
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl">{product.image}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
+                      <p className="text-muted-foreground text-sm">{product.description}</p>
+                    </div>
+                    <div className="text-center px-4">
+                      <p className="text-sm text-muted-foreground">السعر</p>
+                      <p className="font-bold text-accent">{formatPrice(product.price)}</p>
+                    </div>
+                    <div className="text-center px-4">
+                      <p className="text-sm text-muted-foreground">الكمية</p>
+                      <p className="font-bold text-foreground">{product.quantity}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(product)}
+                        className="border-border hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDelete(product.id)}
+                        className="border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <div className="flex justify-end mb-6">
+              <Button onClick={fetchPendingUsers} variant="outline" size="sm">
+                <RefreshCw className={`w-4 h-4 ml-2 ${pendingLoading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
+            </div>
+
+            {pendingLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
               </div>
-            </Card>
-          ))}
-        </div>
+            ) : pendingUsers.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  لا توجد طلبات معلقة
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {pendingUsers.map((user) => (
+                  <Card key={user.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>{user.discord_username}</span>
+                        <span className="text-sm text-muted-foreground font-normal">
+                          {new Date(user.created_at).toLocaleDateString("ar-SA")}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">{user.email}</p>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleUserAction(user.id, "approve")}
+                            disabled={actionLoading === user.id}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            {actionLoading === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Check className="w-4 h-4 ml-1" />
+                                قبول
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleUserAction(user.id, "reject")}
+                            disabled={actionLoading === user.id}
+                          >
+                            {actionLoading === user.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <X className="w-4 h-4 ml-1" />
+                                رفض
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
