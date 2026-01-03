@@ -54,6 +54,37 @@ const CartPage = () => {
 
     setIsSubmitting(true);
 
+    // Get user session
+    const userSession = localStorage.getItem("user_session");
+    const user = userSession ? JSON.parse(userSession) : null;
+
+    // Create order in database
+    try {
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { error: orderError } = await supabase.functions.invoke("create-order", {
+        body: {
+          user_id: user?.id,
+          account_name: accountName,
+          character_name: characterName,
+          discord_username: discordUsername,
+          game_id: orderId,
+          items: cart.map((item) => ({
+            name: item.name,
+            quantity: item.cartQuantity,
+            price: item.price * item.cartQuantity,
+          })),
+          total: cartTotal,
+        },
+      });
+
+      if (orderError) {
+        console.error("Error creating order:", orderError);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
+    // Send webhook
     const success = await sendPurchaseWebhook({
       accountName,
       characterName,

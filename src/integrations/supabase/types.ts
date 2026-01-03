@@ -41,6 +41,56 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          account_name: string
+          character_name: string
+          created_at: string
+          discord_username: string
+          game_id: string
+          id: string
+          items: Json
+          order_number: string
+          status: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          character_name: string
+          created_at?: string
+          discord_username: string
+          game_id: string
+          id?: string
+          items: Json
+          order_number: string
+          status?: string
+          total: number
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          character_name?: string
+          created_at?: string
+          discord_username?: string
+          game_id?: string
+          id?: string
+          items?: Json
+          order_number?: string
+          status?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "approved_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pending_users: {
         Row: {
           approved_at: string | null

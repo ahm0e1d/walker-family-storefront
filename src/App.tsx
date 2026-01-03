@@ -14,7 +14,7 @@ import AdminPage from "@/pages/AdminPage";
 import LoginPage from "@/pages/LoginPage";
 import AuthPage from "@/pages/AuthPage";
 import RegisterPage from "@/pages/RegisterPage";
-
+import OrderHistoryPage from "@/pages/OrderHistoryPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,7 +37,7 @@ const App = () => (
               <Route path="/login" element={<LoginPage />} />
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/register" element={<RegisterPage />} />
-              
+              <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
