@@ -36,7 +36,7 @@ const HomePage = () => {
           {/* Discord Links */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <a 
-              href="https://discord.gg/xVntJmJZ2f" 
+              href="https://discord.gg/BuymXGjbdU" 
               target="_blank" 
               rel="noopener noreferrer"
             >
@@ -49,7 +49,7 @@ const HomePage = () => {
               </Button>
             </a>
             <a 
-              href="https://lovable.dev/invite/2YU4PM3" 
+              href="https://discord.gg/xVntJmJZ2f" 
               target="_blank" 
               rel="noopener noreferrer"
             >
