@@ -6,8 +6,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457142729673932972/HIrz3mpXm177kDBDKxF1KuvG22PVZH8S1SCKxh9ThYqel3Ou1-dHmofN2oknvkMw7gII";
+
 interface DeactivateRequest {
   user_id: string;
+  reason: string;
 }
 
 serve(async (req: Request) => {
@@ -20,13 +23,20 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id }: DeactivateRequest = await req.json();
+    const { user_id, reason }: DeactivateRequest = await req.json();
 
-    console.log("Deactivate user request:", { user_id });
+    console.log("Deactivate user request:", { user_id, reason });
 
     if (!user_id) {
       return new Response(
         JSON.stringify({ error: "معرف المستخدم مطلوب" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!reason || !reason.trim()) {
+      return new Response(
+        JSON.stringify({ error: "السبب مطلوب" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -60,7 +70,54 @@ serve(async (req: Request) => {
       );
     }
 
+    // Also remove admin role if exists
+    await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", user_id);
+
     console.log("User deactivated:", approvedUser.discord_username);
+
+    // Send Discord webhook
+    try {
+      const embed = {
+        title: "🚫 تم سحب تفعيل مستخدم",
+        color: 15158332, // Red color
+        fields: [
+          {
+            name: "ID المستخدم",
+            value: user_id,
+            inline: true,
+          },
+          {
+            name: "اسم الديسكورد",
+            value: approvedUser.discord_username,
+            inline: true,
+          },
+          {
+            name: "البريد الإلكتروني",
+            value: approvedUser.email,
+            inline: true,
+          },
+          {
+            name: "السبب",
+            value: reason,
+            inline: false,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ embeds: [embed] }),
+      });
+
+      console.log("Discord webhook sent for deactivation");
+    } catch (webhookError) {
+      console.error("Failed to send Discord webhook:", webhookError);
+    }
 
     return new Response(
       JSON.stringify({ 

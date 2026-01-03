@@ -111,6 +111,11 @@ const AdminPage = () => {
   const [adminsLoading, setAdminsLoading] = useState(true);
   const [managingAdmin, setManagingAdmin] = useState<string | null>(null);
 
+  // Deactivation with reason
+  const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = useState(false);
+  const [deactivateUserId, setDeactivateUserId] = useState<string | null>(null);
+  const [deactivateReason, setDeactivateReason] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -312,11 +317,26 @@ const AdminPage = () => {
     }
   };
 
-  const handleDeactivateUser = async (userId: string) => {
-    setDeactivatingUser(userId);
+  const openDeactivateDialog = (userId: string) => {
+    setDeactivateUserId(userId);
+    setDeactivateReason("");
+    setIsDeactivateDialogOpen(true);
+  };
+
+  const handleDeactivateUser = async () => {
+    if (!deactivateUserId || !deactivateReason.trim()) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال سبب إلغاء التفعيل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeactivatingUser(deactivateUserId);
     try {
       const { data, error } = await supabase.functions.invoke("deactivate-user", {
-        body: { user_id: userId },
+        body: { user_id: deactivateUserId, reason: deactivateReason },
       });
 
       if (error) throw error;
@@ -335,7 +355,11 @@ const AdminPage = () => {
         description: data.message,
       });
 
-      setApprovedUsers(prev => prev.filter(u => u.id !== userId));
+      setApprovedUsers(prev => prev.filter(u => u.id !== deactivateUserId));
+      setAdminUserIds(prev => prev.filter(id => id !== deactivateUserId));
+      setIsDeactivateDialogOpen(false);
+      setDeactivateUserId(null);
+      setDeactivateReason("");
     } catch (error) {
       console.error("Deactivate error:", error);
       toast({
@@ -1106,7 +1130,7 @@ const AdminPage = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDeactivateUser(approvedUser.id)}
+                          onClick={() => openDeactivateDialog(approvedUser.id)}
                           disabled={deactivatingUser === approvedUser.id}
                         >
                           {deactivatingUser === approvedUser.id ? (
@@ -1125,6 +1149,44 @@ const AdminPage = () => {
               </div>
             )}
           </TabsContent>
+
+          {/* Deactivation Reason Dialog */}
+          <Dialog open={isDeactivateDialogOpen} onOpenChange={(open) => {
+            setIsDeactivateDialogOpen(open);
+            if (!open) {
+              setDeactivateUserId(null);
+              setDeactivateReason("");
+            }
+          }}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>سبب إلغاء التفعيل</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <Label>السبب</Label>
+                  <Input
+                    value={deactivateReason}
+                    onChange={(e) => setDeactivateReason(e.target.value)}
+                    placeholder="أدخل سبب إلغاء التفعيل"
+                  />
+                </div>
+                <Button 
+                  onClick={handleDeactivateUser} 
+                  disabled={deactivatingUser !== null || !deactivateReason.trim()} 
+                  variant="destructive"
+                  className="w-full"
+                >
+                  {deactivatingUser ? (
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  ) : (
+                    <UserX className="w-4 h-4 ml-2" />
+                  )}
+                  تأكيد إلغاء التفعيل
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <TabsContent value="admins">
             <div className="flex justify-end mb-6">
