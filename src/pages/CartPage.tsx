@@ -5,12 +5,14 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useShop } from "@/context/ShopContext";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendPurchaseWebhook } from "@/lib/webhooks";
 import { useNavigate } from "react-router-dom";
 
 const CartPage = () => {
   const { cart, updateCartQuantity, removeFromCart, clearCart, cartTotal } = useShop();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [accountName, setAccountName] = useState("");
@@ -22,12 +24,13 @@ const CartPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Check if user is logged in via shop_user OR is admin
     const userSession = localStorage.getItem("shop_user");
-    if (userSession) {
+    if (userSession || isAdmin) {
       setIsLoggedIn(true);
-      setIsApproved(true); // If they can login, they're approved
+      setIsApproved(true);
     }
-  }, []);
+  }, [isAdmin]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("ar-SA").format(price);
@@ -165,8 +168,12 @@ const CartPage = () => {
             {cart.map((item) => (
               <Card key={item.id} className="p-6 bg-card border-border">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center text-4xl">
-                    {item.image}
+                  <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                    {item.image.startsWith('http') ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-4xl">{item.image}</span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-bold text-foreground">{item.name}</h3>
