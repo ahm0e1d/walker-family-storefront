@@ -1,6 +1,7 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, Users, ShoppingBag } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import { useShop } from "@/context/ShopContext";
+import { Button } from "@/components/ui/button";
 
 const HomePage = () => {
   const { products, loading } = useShop();
@@ -16,6 +17,37 @@ const HomePage = () => {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             مرحباً بكم في متجرنا العائلي - نوفر لكم أفضل المنتجات بأفضل الأسعار
           </p>
+          
+          {/* Discord Links */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a 
+              href="https://discord.gg/xVntJmJZ2f" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button 
+                size="lg" 
+                className="gap-2 bg-[#5865F2] hover:bg-[#4752C4] text-white px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <Users className="w-6 h-6" />
+                انضم لسيرفر العائلة
+              </Button>
+            </a>
+            <a 
+              href="https://lovable.dev/invite/2YU4PM3" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground px-8 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+              >
+                <ShoppingBag className="w-6 h-6" />
+                سيرفر المتجر
+              </Button>
+            </a>
+          </div>
         </div>
       </section>
 
