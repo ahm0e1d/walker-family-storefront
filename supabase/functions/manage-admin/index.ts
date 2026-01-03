@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457142786498236522/ipk_45BtgnxJc1p3UYx3FnoOE6LTbKVyjTaWJhJOZWCnNo7o3G5erqsESH0wGRiqvOmc";
+
 interface ManageAdminRequest {
   approved_user_id: string;
   action: "add" | "remove";
@@ -81,6 +83,42 @@ serve(async (req: Request) => {
 
       console.log("Admin role added for:", approvedUser.discord_username);
 
+      // Send Discord webhook
+      try {
+        const embed = {
+          title: "🛡️ تم ترقية مستخدم لأدمن",
+          color: 3066993, // Green color
+          fields: [
+            {
+              name: "ID المستخدم",
+              value: approved_user_id,
+              inline: true,
+            },
+            {
+              name: "اسم الديسكورد",
+              value: approvedUser.discord_username,
+              inline: true,
+            },
+            {
+              name: "البريد الإلكتروني",
+              value: approvedUser.email,
+              inline: true,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ embeds: [embed] }),
+        });
+
+        console.log("Discord webhook sent for admin promotion");
+      } catch (webhookError) {
+        console.error("Failed to send Discord webhook:", webhookError);
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -106,6 +144,42 @@ serve(async (req: Request) => {
       }
 
       console.log("Admin role removed for:", approvedUser.discord_username);
+
+      // Send Discord webhook
+      try {
+        const embed = {
+          title: "⬇️ تم إزالة صلاحية الأدمن",
+          color: 15105570, // Orange color
+          fields: [
+            {
+              name: "ID المستخدم",
+              value: approved_user_id,
+              inline: true,
+            },
+            {
+              name: "اسم الديسكورد",
+              value: approvedUser.discord_username,
+              inline: true,
+            },
+            {
+              name: "البريد الإلكتروني",
+              value: approvedUser.email,
+              inline: true,
+            },
+          ],
+          timestamp: new Date().toISOString(),
+        };
+
+        await fetch(DISCORD_WEBHOOK_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ embeds: [embed] }),
+        });
+
+        console.log("Discord webhook sent for admin demotion");
+      } catch (webhookError) {
+        console.error("Failed to send Discord webhook:", webhookError);
+      }
 
       return new Response(
         JSON.stringify({ 
