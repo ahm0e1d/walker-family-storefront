@@ -36,8 +36,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <Card className="group overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-500 hover:glow-red animate-fade-in">
       <div className="p-6">
-        <div className="aspect-square rounded-xl bg-muted flex items-center justify-center mb-4 text-6xl group-hover:scale-105 transition-transform duration-500">
-          {product.image}
+        <div className="aspect-square rounded-xl bg-muted flex items-center justify-center mb-4 overflow-hidden group-hover:scale-105 transition-transform duration-500">
+          {product.image.startsWith('http') ? (
+            <img 
+              src={product.image} 
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-6xl">{product.image}</span>
+          )}
         </div>
 
         <h3 className="text-xl font-bold text-foreground mb-1">{product.name}</h3>

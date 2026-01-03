@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminPage = () => {
   const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
@@ -25,6 +26,7 @@ const AdminPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,6 +75,46 @@ const AdminPage = () => {
       rating: product.rating.toString(),
     });
     setIsDialogOpen(true);
+  };
+
+  const handleGenerateImage = async () => {
+    if (!formData.name) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال اسم المنتج أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-product-image", {
+        body: {
+          productName: formData.name,
+          productDescription: formData.description,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.imageUrl) {
+        setFormData({ ...formData, image: data.imageUrl });
+        toast({
+          title: "تم التوليد",
+          description: "تم توليد صورة المنتج بنجاح",
+        });
+      }
+    } catch (error) {
+      console.error("Error generating image:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل في توليد الصورة. حاول مرة أخرى.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -233,13 +275,37 @@ const AdminPage = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>الأيقونة (إيموجي)</Label>
-                      <Input
-                        value={formData.image}
-                        onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                        placeholder="📦"
-                        className="bg-input border-border"
-                      />
+                      <Label>صورة المنتج (رابط أو إيموجي)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={formData.image}
+                          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                          placeholder="📦 أو رابط صورة"
+                          className="bg-input border-border flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGenerateImage}
+                          disabled={isGeneratingImage || !formData.name}
+                          className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                        >
+                          {isGeneratingImage ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Sparkles className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                      {formData.image.startsWith('http') && (
+                        <div className="mt-2">
+                          <img 
+                            src={formData.image} 
+                            alt="معاينة" 
+                            className="w-20 h-20 object-cover rounded-lg"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label>التقييم (1-5)</Label>
@@ -283,8 +349,12 @@ const AdminPage = () => {
           {products.map((product) => (
             <Card key={product.id} className="p-6 bg-card border-border">
               <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center text-3xl">
-                  {product.image}
+                <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                  {product.image.startsWith('http') ? (
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">{product.image}</span>
+                  )}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
