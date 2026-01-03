@@ -22,7 +22,7 @@ const CartPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    const userSession = localStorage.getItem("user_session");
+    const userSession = localStorage.getItem("shop_user");
     if (userSession) {
       setIsLoggedIn(true);
       setIsApproved(true); // If they can login, they're approved
@@ -55,7 +55,7 @@ const CartPage = () => {
     setIsSubmitting(true);
 
     // Get user session
-    const userSession = localStorage.getItem("user_session");
+    const userSession = localStorage.getItem("shop_user");
     const user = userSession ? JSON.parse(userSession) : null;
 
     // Create order in database
