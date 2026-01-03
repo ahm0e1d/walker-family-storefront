@@ -14,9 +14,24 @@ const HomePage = () => {
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6">
             <span className="text-gradient">Walker Family Shop</span>
           </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
             مرحباً بكم في متجرنا العائلي - نوفر لكم أفضل المنتجات بأفضل الأسعار
           </p>
+          
+          {/* Owner & Team */}
+          <div className="flex flex-col items-center gap-3 mb-8">
+            <div className="flex items-center gap-2 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
+              <span className="text-muted-foreground">مالك المتجر:</span>
+              <span className="font-bold text-primary text-lg">@w8jl</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>الطاقم:</span>
+              <div className="flex gap-2">
+                <span className="bg-secondary px-3 py-1 rounded-full text-secondary-foreground font-medium">@s_h0.</span>
+                <span className="bg-secondary px-3 py-1 rounded-full text-secondary-foreground font-medium">@3.bb3</span>
+              </div>
+            </div>
+          </div>
           
           {/* Discord Links */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
