@@ -1,4 +1,9 @@
 import { Product } from "@/types/product";
+import woodImage from "@/assets/products/wood.png";
+import clothesImage from "@/assets/products/clothes.png";
+import poultryImage from "@/assets/products/poultry.png";
+import vegetablesImage from "@/assets/products/vegetables.png";
+import oilGasImage from "@/assets/products/oil-gas.png";
 
 export const initialProducts: Product[] = [
   {
@@ -7,7 +12,7 @@ export const initialProducts: Product[] = [
     description: "خشب عالي الجودة للبناء والتصنيع",
     price: 35000,
     quantity: 150,
-    image: "🪵",
+    image: woodImage,
     rating: 4,
   },
   {
@@ -16,7 +21,7 @@ export const initialProducts: Product[] = [
     description: "ملابس متنوعة بأفضل الأسعار",
     price: 50000,
     quantity: 120,
-    image: "👕",
+    image: clothesImage,
     rating: 5,
   },
   {
@@ -25,7 +30,7 @@ export const initialProducts: Product[] = [
     description: "دواجن طازجة ومجمدة",
     price: 25000,
     quantity: 150,
-    image: "🐔",
+    image: poultryImage,
     rating: 4,
   },
   {
@@ -34,7 +39,7 @@ export const initialProducts: Product[] = [
     description: "خضراوات طازجة من المزرعة",
     price: 35000,
     quantity: 150,
-    image: "🥬",
+    image: vegetablesImage,
     rating: 5,
   },
   {
@@ -43,7 +48,7 @@ export const initialProducts: Product[] = [
     description: "منتجات نفطية وغازية",
     price: 55000,
     quantity: 60,
-    image: "⛽",
+    image: oilGasImage,
     rating: 4,
   },
 ];
