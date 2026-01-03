@@ -94,9 +94,9 @@ const CartPage = () => {
       <div className="min-h-screen py-12">
         <div className="container mx-auto px-4">
           <div className="text-center py-20">
-            <AlertCircle className="w-24 h-24 mx-auto text-destructive mb-6" />
-            <h1 className="text-3xl font-bold text-foreground mb-4">يجب تسجيل الدخول</h1>
-            <p className="text-muted-foreground mb-6">يجب عليك تسجيل الدخول للتمكن من الطلب</p>
+            <AlertCircle className="w-24 h-24 mx-auto text-amber-500 mb-6" />
+            <h1 className="text-3xl font-bold text-foreground mb-4">انتظر التفعيل</h1>
+            <p className="text-muted-foreground mb-6">انتظر التفعيل من قبل الاونر للتمكن من الطلب</p>
             <Button onClick={() => navigate("/auth")} className="bg-primary hover:bg-primary/80">
               تسجيل الدخول
             </Button>
