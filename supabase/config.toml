@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.complete-order]
 verify_jwt = false
+
+[functions.deactivate-user]
+verify_jwt = false

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,13 @@ interface PendingUser {
   discord_username: string;
   created_at: string;
   status: string;
+}
+
+interface ApprovedUser {
+  id: string;
+  email: string;
+  discord_username: string;
+  created_at: string;
 }
 
 interface OrderItem {
@@ -67,6 +74,11 @@ const AdminPage = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [completingOrder, setCompletingOrder] = useState<string | null>(null);
 
+  // Approved users state
+  const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
+  const [approvedUsersLoading, setApprovedUsersLoading] = useState(true);
+  const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -86,8 +98,26 @@ const AdminPage = () => {
     if (isAdmin) {
       fetchPendingUsers();
       fetchOrders();
+      fetchApprovedUsers();
     }
   }, [isAdmin]);
+
+  const fetchApprovedUsers = async () => {
+    setApprovedUsersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("approved_users")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setApprovedUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching approved users:", error);
+    } finally {
+      setApprovedUsersLoading(false);
+    }
+  };
 
   const fetchPendingUsers = async () => {
     setPendingLoading(true);
@@ -203,6 +233,42 @@ const AdminPage = () => {
       });
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleDeactivateUser = async (userId: string) => {
+    setDeactivatingUser(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke("deactivate-user", {
+        body: { user_id: userId },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "خطأ",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم!",
+        description: data.message,
+      });
+
+      setApprovedUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (error) {
+      console.error("Deactivate error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إلغاء التفعيل",
+        variant: "destructive",
+      });
+    } finally {
+      setDeactivatingUser(null);
     }
   };
 
@@ -389,7 +455,7 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
@@ -411,6 +477,10 @@ const AdminPage = () => {
                   {pendingUsers.length}
                 </span>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="approved-users" className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              المستخدمين المفعلين
             </TabsTrigger>
           </TabsList>
 
@@ -744,6 +814,63 @@ const AdminPage = () => {
                             )}
                           </Button>
                         </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="approved-users">
+            <div className="flex justify-end mb-6">
+              <Button onClick={fetchApprovedUsers} variant="outline" size="sm">
+                <RefreshCw className={`w-4 h-4 ml-2 ${approvedUsersLoading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
+            </div>
+
+            {approvedUsersLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              </div>
+            ) : approvedUsers.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <UserCheck className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  لا يوجد مستخدمين مفعلين
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {approvedUsers.map((approvedUser) => (
+                  <Card key={approvedUser.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <span>{approvedUser.discord_username}</span>
+                        <span className="text-sm text-muted-foreground font-normal">
+                          {new Date(approvedUser.created_at).toLocaleDateString("ar-SA")}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <p className="text-muted-foreground">{approvedUser.email}</p>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeactivateUser(approvedUser.id)}
+                          disabled={deactivatingUser === approvedUser.id}
+                        >
+                          {deactivatingUser === approvedUser.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <UserX className="w-4 h-4 ml-1" />
+                              إلغاء التفعيل
+                            </>
+                          )}
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
