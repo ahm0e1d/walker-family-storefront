@@ -30,7 +30,10 @@ const ContactPage = () => {
 
     setIsSubmitting(true);
 
-    await sendComplaintWebhook({ characterName, accountName, discordUsername, complaint });
+    // Generate complaint ID
+    const complaintId = "CMP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    await sendComplaintWebhook({ complaintId, characterName, accountName, discordUsername, complaint });
 
     setIsSubmitting(false);
     toast({

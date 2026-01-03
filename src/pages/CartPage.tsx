@@ -59,9 +59,10 @@ const CartPage = () => {
     const user = userSession ? JSON.parse(userSession) : null;
 
     // Create order in database
+    let orderNumber = "";
     try {
       const { supabase } = await import("@/integrations/supabase/client");
-      const { error: orderError } = await supabase.functions.invoke("create-order", {
+      const { data: orderData, error: orderError } = await supabase.functions.invoke("create-order", {
         body: {
           user_id: user?.id,
           account_name: accountName,
@@ -79,6 +80,8 @@ const CartPage = () => {
 
       if (orderError) {
         console.error("Error creating order:", orderError);
+      } else if (orderData?.order?.order_number) {
+        orderNumber = orderData.order.order_number;
       }
     } catch (error) {
       console.error("Error:", error);
@@ -86,6 +89,7 @@ const CartPage = () => {
 
     // Send webhook
     const success = await sendPurchaseWebhook({
+      orderNumber,
       accountName,
       characterName,
       discordUsername,
