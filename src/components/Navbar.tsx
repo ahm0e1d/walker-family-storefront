@@ -1,14 +1,36 @@
-import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut, Users, UserCircle } from "lucide-react";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+
+interface ShopUser {
+  id: string;
+  email: string;
+  discord_username: string;
+}
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { cartItemsCount } = useShop();
   const { user, isAdmin, signOut } = useAuth();
+  const [shopUser, setShopUser] = useState<ShopUser | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("shop_user");
+    if (storedUser) {
+      setShopUser(JSON.parse(storedUser));
+    }
+  }, [location]);
+
+  const handleShopLogout = () => {
+    localStorage.removeItem("shop_user");
+    setShopUser(null);
+    navigate("/auth");
+  };
 
   const links = [
     { path: "/", label: "الرئيسية", icon: Home },
@@ -57,17 +79,30 @@ const Navbar = () => {
             {user ? (
               <>
                 {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                      location.pathname === "/admin"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <Settings className="w-5 h-5" />
-                    <span className="font-medium">الإدارة</span>
-                  </Link>
+                  <>
+                    <Link
+                      to="/admin"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                        location.pathname === "/admin"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Settings className="w-5 h-5" />
+                      <span className="font-medium">الإدارة</span>
+                    </Link>
+                    <Link
+                      to="/pending-users"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                        location.pathname === "/pending-users"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Users className="w-5 h-5" />
+                      <span className="font-medium">الطلبات</span>
+                    </Link>
+                  </>
                 )}
                 <Button
                   variant="ghost"
@@ -79,18 +114,47 @@ const Navbar = () => {
                   خروج
                 </Button>
               </>
+            ) : shopUser ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-full">
+                  <UserCircle className="w-4 h-4" />
+                  <span className="text-sm font-medium">{shopUser.discord_username}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleShopLogout}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <LogOut className="w-4 h-4 ml-1" />
+                  خروج
+                </Button>
+              </>
             ) : (
-              <Link
-                to="/login"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                  location.pathname === "/login"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                <LogIn className="w-5 h-5" />
-                <span className="font-medium">دخول المالك</span>
-              </Link>
+              <>
+                <Link
+                  to="/auth"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    location.pathname === "/auth"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <LogIn className="w-5 h-5" />
+                  <span className="font-medium">دخول</span>
+                </Link>
+                <Link
+                  to="/login"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                    location.pathname === "/login"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
+                  }`}
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="font-medium">المالك</span>
+                </Link>
+              </>
             )}
           </div>
         </div>

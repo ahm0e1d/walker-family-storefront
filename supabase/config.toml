@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.upload-local-images]
 verify_jwt = false
+
+[functions.register-user]
+verify_jwt = false
+
+[functions.login-user]
+verify_jwt = false
+
+[functions.approve-user]
+verify_jwt = false

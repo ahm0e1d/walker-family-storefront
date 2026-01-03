@@ -1,0 +1,165 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1455151545695080459/Yh79KZFAKIGdJ9xf0sZG5ssFpnPidW8Dh5JMnQYQ957TVDSPZHmcIGNpoTMkJ6L6xY_Z";
+
+interface RegisterRequest {
+  email: string;
+  password: string;
+  discord_username: string;
+}
+
+serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const { email, password, discord_username }: RegisterRequest = await req.json();
+
+    console.log("Registration attempt:", { email, discord_username });
+
+    // Validate input
+    if (!email || !password || !discord_username) {
+      return new Response(
+        JSON.stringify({ error: "جميع الحقول مطلوبة" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if discord username already exists in pending or approved users
+    const { data: existingPending } = await supabase
+      .from("pending_users")
+      .select("id")
+      .eq("discord_username", discord_username)
+      .maybeSingle();
+
+    if (existingPending) {
+      return new Response(
+        JSON.stringify({ error: "يوزر Discord مسجل مسبقاً وينتظر التفعيل" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: existingApproved } = await supabase
+      .from("approved_users")
+      .select("id")
+      .eq("discord_username", discord_username)
+      .maybeSingle();
+
+    if (existingApproved) {
+      return new Response(
+        JSON.stringify({ error: "يوزر Discord مسجل مسبقاً" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check email in pending
+    const { data: existingEmailPending } = await supabase
+      .from("pending_users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingEmailPending) {
+      return new Response(
+        JSON.stringify({ error: "الإيميل مسجل مسبقاً وينتظر التفعيل" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: existingEmailApproved } = await supabase
+      .from("approved_users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingEmailApproved) {
+      return new Response(
+        JSON.stringify({ error: "الإيميل مسجل مسبقاً" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Simple password hash (in production, use bcrypt)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const passwordHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+
+    // Insert pending user
+    const { data: newUser, error: insertError } = await supabase
+      .from("pending_users")
+      .insert({
+        email,
+        password_hash: passwordHash,
+        discord_username,
+        status: "pending"
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Insert error:", insertError);
+      return new Response(
+        JSON.stringify({ error: "حدث خطأ أثناء التسجيل" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("User registered:", newUser.id);
+
+    // Send Discord notification
+    try {
+      const discordPayload = {
+        embeds: [{
+          title: "📝 طلب تسجيل جديد",
+          color: 0xFFA500,
+          fields: [
+            { name: "📧 الإيميل", value: email, inline: true },
+            { name: "🎮 يوزر Discord", value: discord_username, inline: true },
+            { name: "📅 التاريخ", value: new Date().toLocaleString("ar-SA"), inline: false }
+          ],
+          footer: { text: "Walker Family Shop - طلب تسجيل معلق" },
+          timestamp: new Date().toISOString()
+        }]
+      };
+
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(discordPayload)
+      });
+
+      console.log("Discord notification sent");
+    } catch (discordError) {
+      console.error("Discord webhook error:", discordError);
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: "تم التسجيل بنجاح! انتظر تفعيل حسابك من المالك" 
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (error) {
+    console.error("Error:", error);
+    return new Response(
+      JSON.stringify({ error: "حدث خطأ غير متوقع" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});

@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      approved_users: {
+        Row: {
+          created_at: string
+          discord_username: string
+          email: string
+          id: string
+          last_login: string | null
+          password_hash: string
+        }
+        Insert: {
+          created_at?: string
+          discord_username: string
+          email: string
+          id?: string
+          last_login?: string | null
+          password_hash: string
+        }
+        Update: {
+          created_at?: string
+          discord_username?: string
+          email?: string
+          id?: string
+          last_login?: string | null
+          password_hash?: string
+        }
+        Relationships: []
+      }
+      pending_users: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          discord_username: string
+          email: string
+          id: string
+          password_hash: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          discord_username: string
+          email: string
+          id?: string
+          password_hash: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          discord_username?: string
+          email?: string
+          id?: string
+          password_hash?: string
+          status?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           created_at: string
