@@ -12,6 +12,9 @@ import CartPage from "@/pages/CartPage";
 import ContactPage from "@/pages/ContactPage";
 import AdminPage from "@/pages/AdminPage";
 import LoginPage from "@/pages/LoginPage";
+import AuthPage from "@/pages/AuthPage";
+import RegisterPage from "@/pages/RegisterPage";
+import PendingUsersPage from "@/pages/PendingUsersPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +35,9 @@ const App = () => (
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/pending-users" element={<PendingUsersPage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
