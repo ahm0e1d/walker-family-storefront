@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut, UserCircle, History } from "lucide-react";
+import { ShoppingCart, Home, Package, MessageCircle, Settings, LogIn, LogOut, UserCircle, History, ScrollText } from "lucide-react";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,7 @@ const Navbar = () => {
     { path: "/", label: "الرئيسية", icon: Home },
     { path: "/products", label: "المنتجات", icon: Package },
     { path: "/cart", label: "السلة", icon: ShoppingCart, badge: cartItemsCount },
+    { path: "/rules", label: "القوانين", icon: ScrollText },
     { path: "/contact", label: "تواصل معنا", icon: MessageCircle },
   ];
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,19 @@ interface Order {
   created_at: string;
 }
 
+interface RuleCategory {
+  id: string;
+  name: string;
+  sort_order: number;
+}
+
+interface Rule {
+  id: string;
+  category_id: string;
+  content: string;
+  sort_order: number;
+}
+
 const AdminPage = () => {
   const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -79,6 +92,20 @@ const AdminPage = () => {
   const [approvedUsersLoading, setApprovedUsersLoading] = useState(true);
   const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
 
+  // Rules state
+  const [ruleCategories, setRuleCategories] = useState<RuleCategory[]>([]);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [rulesLoading, setRulesLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [ruleContent, setRuleContent] = useState("");
+  const [editingCategory, setEditingCategory] = useState<RuleCategory | null>(null);
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [savingRule, setSavingRule] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -99,8 +126,34 @@ const AdminPage = () => {
       fetchPendingUsers();
       fetchOrders();
       fetchApprovedUsers();
+      fetchRulesData();
     }
   }, [isAdmin]);
+
+  const fetchRulesData = async () => {
+    setRulesLoading(true);
+    try {
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from("rule_categories")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (categoriesError) throw categoriesError;
+      setRuleCategories(categoriesData || []);
+
+      const { data: rulesData, error: rulesError } = await supabase
+        .from("rules")
+        .select("*")
+        .order("sort_order", { ascending: true });
+
+      if (rulesError) throw rulesError;
+      setRules(rulesData || []);
+    } catch (error) {
+      console.error("Error fetching rules:", error);
+    } finally {
+      setRulesLoading(false);
+    }
+  };
 
   const fetchApprovedUsers = async () => {
     setApprovedUsersLoading(true);
@@ -269,6 +322,132 @@ const AdminPage = () => {
       });
     } finally {
       setDeactivatingUser(null);
+    }
+  };
+
+  // Rules management functions
+  const handleSaveCategory = async () => {
+    if (!categoryName.trim()) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال اسم الفئة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingCategory(true);
+    try {
+      if (editingCategory) {
+        const { error } = await supabase
+          .from("rule_categories")
+          .update({ name: categoryName })
+          .eq("id", editingCategory.id);
+        if (error) throw error;
+        toast({ title: "تم!", description: "تم تحديث الفئة بنجاح" });
+      } else {
+        const maxOrder = Math.max(0, ...ruleCategories.map(c => c.sort_order));
+        const { error } = await supabase
+          .from("rule_categories")
+          .insert({ name: categoryName, sort_order: maxOrder + 1 });
+        if (error) throw error;
+        toast({ title: "تم!", description: "تم إضافة الفئة بنجاح" });
+      }
+      setIsCategoryDialogOpen(false);
+      setCategoryName("");
+      setEditingCategory(null);
+      fetchRulesData();
+    } catch (error) {
+      console.error("Error saving category:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحفظ",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      const { error } = await supabase
+        .from("rule_categories")
+        .delete()
+        .eq("id", categoryId);
+      if (error) throw error;
+      toast({ title: "تم!", description: "تم حذف الفئة بنجاح" });
+      fetchRulesData();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحذف",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveRule = async () => {
+    if (!ruleContent.trim() || !selectedCategory) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال محتوى القانون واختيار الفئة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSavingRule(true);
+    try {
+      if (editingRule) {
+        const { error } = await supabase
+          .from("rules")
+          .update({ content: ruleContent, category_id: selectedCategory })
+          .eq("id", editingRule.id);
+        if (error) throw error;
+        toast({ title: "تم!", description: "تم تحديث القانون بنجاح" });
+      } else {
+        const categoryRules = rules.filter(r => r.category_id === selectedCategory);
+        const maxOrder = Math.max(0, ...categoryRules.map(r => r.sort_order));
+        const { error } = await supabase
+          .from("rules")
+          .insert({ content: ruleContent, category_id: selectedCategory, sort_order: maxOrder + 1 });
+        if (error) throw error;
+        toast({ title: "تم!", description: "تم إضافة القانون بنجاح" });
+      }
+      setIsRuleDialogOpen(false);
+      setRuleContent("");
+      setEditingRule(null);
+      fetchRulesData();
+    } catch (error) {
+      console.error("Error saving rule:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحفظ",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingRule(false);
+    }
+  };
+
+  const handleDeleteRule = async (ruleId: string) => {
+    try {
+      const { error } = await supabase
+        .from("rules")
+        .delete()
+        .eq("id", ruleId);
+      if (error) throw error;
+      toast({ title: "تم!", description: "تم حذف القانون بنجاح" });
+      fetchRulesData();
+    } catch (error) {
+      console.error("Error deleting rule:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء الحذف",
+        variant: "destructive",
+      });
     }
   };
 
@@ -455,14 +634,14 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
             </TabsTrigger>
             <TabsTrigger value="orders" className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4" />
-              حالة الطلبات
+              الطلبات
               {orders.length > 0 && (
                 <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
                   {orders.length}
@@ -471,7 +650,7 @@ const AdminPage = () => {
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              طلبات التسجيل
+              التسجيلات
               {pendingUsers.length > 0 && (
                 <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
                   {pendingUsers.length}
@@ -480,7 +659,11 @@ const AdminPage = () => {
             </TabsTrigger>
             <TabsTrigger value="approved-users" className="flex items-center gap-2">
               <UserCheck className="w-4 h-4" />
-              المستخدمين المفعلين
+              المفعلين
+            </TabsTrigger>
+            <TabsTrigger value="rules" className="flex items-center gap-2">
+              <ScrollText className="w-4 h-4" />
+              القوانين
             </TabsTrigger>
           </TabsList>
 
@@ -877,6 +1060,193 @@ const AdminPage = () => {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="rules">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Categories Section */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">الفئات</h2>
+                  <Dialog open={isCategoryDialogOpen} onOpenChange={(open) => {
+                    setIsCategoryDialogOpen(open);
+                    if (!open) {
+                      setCategoryName("");
+                      setEditingCategory(null);
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button size="sm">
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة فئة
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{editingCategory ? "تعديل الفئة" : "إضافة فئة جديدة"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label>اسم الفئة</Label>
+                          <Input
+                            value={categoryName}
+                            onChange={(e) => setCategoryName(e.target.value)}
+                            placeholder="مثال: قوانين عامة"
+                          />
+                        </div>
+                        <Button onClick={handleSaveCategory} disabled={savingCategory} className="w-full">
+                          {savingCategory ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+                          {editingCategory ? "حفظ التعديلات" : "إضافة"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {rulesLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : ruleCategories.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      لا توجد فئات
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {ruleCategories.map((category) => (
+                      <Card 
+                        key={category.id} 
+                        className={`cursor-pointer transition-colors ${selectedCategory === category.id ? "border-primary bg-primary/5" : ""}`}
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <span className="font-medium">{category.name}</span>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCategory(category);
+                                setCategoryName(category.name);
+                                setIsCategoryDialogOpen(true);
+                              }}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteCategory(category.id);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Rules Section */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold">القوانين</h2>
+                  <Dialog open={isRuleDialogOpen} onOpenChange={(open) => {
+                    setIsRuleDialogOpen(open);
+                    if (!open) {
+                      setRuleContent("");
+                      setEditingRule(null);
+                    }
+                  }}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" disabled={!selectedCategory}>
+                        <Plus className="w-4 h-4 ml-1" />
+                        إضافة قانون
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{editingRule ? "تعديل القانون" : "إضافة قانون جديد"}</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div>
+                          <Label>محتوى القانون</Label>
+                          <Input
+                            value={ruleContent}
+                            onChange={(e) => setRuleContent(e.target.value)}
+                            placeholder="أدخل نص القانون"
+                          />
+                        </div>
+                        <Button onClick={handleSaveRule} disabled={savingRule} className="w-full">
+                          {savingRule ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Save className="w-4 h-4 ml-2" />}
+                          {editingRule ? "حفظ التعديلات" : "إضافة"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {!selectedCategory ? (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      اختر فئة لعرض القوانين
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-2">
+                    {rules.filter(r => r.category_id === selectedCategory).length === 0 ? (
+                      <Card>
+                        <CardContent className="py-8 text-center text-muted-foreground">
+                          لا توجد قوانين في هذه الفئة
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      rules
+                        .filter(r => r.category_id === selectedCategory)
+                        .map((rule, index) => (
+                          <Card key={rule.id}>
+                            <CardContent className="p-4 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3 flex-1">
+                                <span className="text-primary font-bold">{index + 1}.</span>
+                                <span>{rule.content}</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setEditingRule(rule);
+                                    setRuleContent(rule.content);
+                                    setIsRuleDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteRule(rule.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
