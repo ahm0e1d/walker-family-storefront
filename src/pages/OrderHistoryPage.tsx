@@ -30,7 +30,7 @@ const OrderHistoryPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userSession = localStorage.getItem("user_session");
+    const userSession = localStorage.getItem("shop_user");
     if (!userSession) {
       navigate("/auth");
       return;
