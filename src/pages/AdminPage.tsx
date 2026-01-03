@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,25 @@ interface PendingUser {
   status: string;
 }
 
+interface OrderItem {
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  account_name: string;
+  character_name: string;
+  discord_username: string;
+  game_id: string;
+  items: OrderItem[];
+  total: number;
+  status: string;
+  created_at: string;
+}
+
 const AdminPage = () => {
   const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
   const { user, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -41,6 +61,11 @@ const AdminPage = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [pendingLoading, setPendingLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Orders state
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [completingOrder, setCompletingOrder] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -60,6 +85,7 @@ const AdminPage = () => {
   useEffect(() => {
     if (isAdmin) {
       fetchPendingUsers();
+      fetchOrders();
     }
   }, [isAdmin]);
 
@@ -78,6 +104,66 @@ const AdminPage = () => {
       console.error("Error fetching pending users:", error);
     } finally {
       setPendingLoading(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      
+      const transformedOrders = (data || []).map(order => ({
+        ...order,
+        items: order.items as unknown as OrderItem[]
+      }));
+      
+      setOrders(transformedOrders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const handleCompleteOrder = async (orderId: string) => {
+    setCompletingOrder(orderId);
+    try {
+      const { data, error } = await supabase.functions.invoke("complete-order", {
+        body: { order_id: orderId },
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "خطأ",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "تم!",
+        description: "تم تسليم الطلب بنجاح",
+      });
+
+      setOrders(prev => prev.filter(o => o.id !== orderId));
+    } catch (error) {
+      console.error("Error completing order:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تسليم الطلب",
+        variant: "destructive",
+      });
+    } finally {
+      setCompletingOrder(null);
     }
   };
 
@@ -303,10 +389,19 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4" />
+              حالة الطلبات
+              {orders.length > 0 && (
+                <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
+                  {orders.length}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -486,6 +581,101 @@ const AdminPage = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="orders">
+            <div className="flex justify-end mb-6">
+              <Button onClick={fetchOrders} variant="outline" size="sm">
+                <RefreshCw className={`w-4 h-4 ml-2 ${ordersLoading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
+            </div>
+
+            {ordersLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              </div>
+            ) : orders.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <ShoppingBag className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  لا توجد طلبات معلقة
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => (
+                  <Card key={order.id}>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary" className="bg-primary/20 text-primary">
+                            {order.order_number}
+                          </Badge>
+                          <span className="text-muted-foreground text-sm font-normal">
+                            {order.discord_username}
+                          </span>
+                        </div>
+                        <span className="text-sm text-muted-foreground font-normal">
+                          {new Date(order.created_at).toLocaleDateString("ar-SA")}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">اسم الحساب:</span>
+                          <p className="font-medium">{order.account_name}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">اسم الشخصية:</span>
+                          <p className="font-medium">{order.character_name}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">الديسكورد:</span>
+                          <p className="font-medium">{order.discord_username}</p>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">الايدي:</span>
+                          <p className="font-medium">{order.game_id}</p>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-border pt-3 mb-4">
+                        <h4 className="font-medium mb-2 text-sm">المنتجات:</h4>
+                        <div className="space-y-1">
+                          {order.items.map((item, index) => (
+                            <div key={index} className="flex justify-between text-sm">
+                              <span>
+                                {item.name} × {item.quantity}
+                              </span>
+                              <span className="text-accent">{item.price.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex justify-between font-bold mt-2 pt-2 border-t border-border">
+                          <span>المجموع</span>
+                          <span className="text-accent">{order.total.toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => handleCompleteOrder(order.id)}
+                        disabled={completingOrder === order.id}
+                        className="w-full bg-green-600 hover:bg-green-700"
+                      >
+                        {completingOrder === order.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4 ml-2" />
+                        )}
+                        تم التسليم
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="users">
