@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Minus, Plus, Trash2, ShoppingBag, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,15 +7,27 @@ import { Label } from "@/components/ui/label";
 import { useShop } from "@/context/ShopContext";
 import { useToast } from "@/hooks/use-toast";
 import { sendPurchaseWebhook } from "@/lib/webhooks";
+import { useNavigate } from "react-router-dom";
 
 const CartPage = () => {
   const { cart, updateCartQuantity, removeFromCart, clearCart, cartTotal } = useShop();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [accountName, setAccountName] = useState("");
   const [characterName, setCharacterName] = useState("");
   const [discordUsername, setDiscordUsername] = useState("");
   const [orderId, setOrderId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApproved, setIsApproved] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const userSession = localStorage.getItem("user_session");
+    if (userSession) {
+      setIsLoggedIn(true);
+      setIsApproved(true); // If they can login, they're approved
+    }
+  }, []);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("ar-SA").format(price);
@@ -75,6 +87,24 @@ const CartPage = () => {
       clearCart();
     }
   };
+
+  // Show message if not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen py-12">
+        <div className="container mx-auto px-4">
+          <div className="text-center py-20">
+            <AlertCircle className="w-24 h-24 mx-auto text-destructive mb-6" />
+            <h1 className="text-3xl font-bold text-foreground mb-4">يجب تسجيل الدخول</h1>
+            <p className="text-muted-foreground mb-6">يجب عليك تسجيل الدخول للتمكن من الطلب</p>
+            <Button onClick={() => navigate("/auth")} className="bg-primary hover:bg-primary/80">
+              تسجيل الدخول
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (cart.length === 0) {
     return (
