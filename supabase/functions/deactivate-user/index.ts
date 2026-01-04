@@ -123,6 +123,11 @@ serve(async (req: Request) => {
             value: reason,
             inline: false,
           },
+          {
+            name: "تم بواسطة",
+            value: admin_discord || admin_email || "غير معروف",
+            inline: true,
+          },
         ],
         timestamp: new Date().toISOString(),
       };
