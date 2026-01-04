@@ -1,34 +1,42 @@
-import { useState, useRef } from "react";
-import { motion, useScroll } from "framer-motion";
-import { Loader2, Users, ShoppingBag, UserPlus, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { motion, useScroll, AnimatePresence } from "framer-motion";
+import { Loader2, Users, ShoppingBag, UserPlus, ChevronDown, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { useShop } from "@/context/ShopContext";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+
 const HomePage = () => {
-  const {
-    products,
-    loading
-  } = useShop();
+  const { products, loading } = useShop();
+  const { isAdmin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [discordUsername, setDiscordUsername] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const [isLoggedInUser, setIsLoggedInUser] = useState(false);
+  const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
-  const {
-    scrollYProgress
-  } = useScroll({
-    container: containerRef
-  });
+  const { scrollYProgress } = useScroll({ container: containerRef });
+
+  // Check if regular user is logged in (not admin)
+  useEffect(() => {
+    const shopUser = localStorage.getItem("shop_user");
+    if (shopUser && !isAdmin) {
+      setIsLoggedInUser(true);
+    } else {
+      setIsLoggedInUser(false);
+    }
+  }, [isAdmin]);
+
+  // Determine if registration section should be shown
+  const showRegistration = !isLoggedInUser || isAdmin;
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== confirmPassword) {
@@ -215,190 +223,199 @@ const HomePage = () => {
               </Button>
             </a>
           </motion.div>
-        </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.button onClick={() => scrollToSection("register")} initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1,
-        y: [0, 10, 0]
-      }} transition={{
-        opacity: {
-          delay: 1.5,
-          duration: 0.5
-        },
-        y: {
-          repeat: Infinity,
-          duration: 1.5,
-          ease: "easeInOut"
-        }
-      }} className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors">
-          <ChevronDown className="w-10 h-10" />
-        </motion.button>
-      </section>
-
-      {/* Registration Section */}
-      <section id="register" className="min-h-screen snap-start flex items-center justify-center py-20 relative overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
-        
-        <motion.div initial={{
-        opacity: 0,
-        x: -100
-      }} whileInView={{
-        opacity: 1,
-        x: 0
-      }} transition={{
-        duration: 0.8,
-        ease: "easeOut"
-      }} viewport={{
-        once: true,
-        margin: "-100px"
-      }} className="container mx-auto px-4 relative z-10">
-          <div className="max-w-md mx-auto">
-            <motion.div initial={{
-            opacity: 0,
-            y: 50,
-            rotateX: -15
-          }} whileInView={{
-            opacity: 1,
-            y: 0,
-            rotateX: 0
-          }} transition={{
-            duration: 0.6,
-            delay: 0.2
-          }} viewport={{
-            once: true
-          }}>
-              <Card className="border-primary/20 shadow-2xl backdrop-blur-sm bg-card/90">
-                <CardHeader className="text-center">
-                  <motion.div initial={{
-                  scale: 0
-                }} whileInView={{
-                  scale: 1
-                }} transition={{
-                  duration: 0.5,
-                  delay: 0.4,
-                  type: "spring"
-                }} viewport={{
-                  once: true
-                }}>
-                    <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
-                  </motion.div>
-                  <CardDescription>
-                    أنشئ حسابك وانتظر تفعيله من المالك
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleRegister}>
-                  <CardContent className="space-y-4">
-                    <motion.div initial={{
-                    opacity: 0,
-                    x: -20
-                  }} whileInView={{
-                    opacity: 1,
-                    x: 0
-                  }} transition={{
-                    duration: 0.4,
-                    delay: 0.5
-                  }} viewport={{
-                    once: true
-                  }} className="space-y-2">
-                      <Label htmlFor="discord">يوزر Discord</Label>
-                      <Input id="discord" type="text" placeholder="@username" value={discordUsername} onChange={e => setDiscordUsername(e.target.value)} required dir="ltr" />
-                    </motion.div>
-                    <motion.div initial={{
-                    opacity: 0,
-                    x: -20
-                  }} whileInView={{
-                    opacity: 1,
-                    x: 0
-                  }} transition={{
-                    duration: 0.4,
-                    delay: 0.6
-                  }} viewport={{
-                    once: true
-                  }} className="space-y-2">
-                      <Label htmlFor="email">البريد الإلكتروني</Label>
-                      <Input id="email" type="email" placeholder="example@email.com" value={email} onChange={e => setEmail(e.target.value)} required dir="ltr" />
-                    </motion.div>
-                    <motion.div initial={{
-                    opacity: 0,
-                    x: -20
-                  }} whileInView={{
-                    opacity: 1,
-                    x: 0
-                  }} transition={{
-                    duration: 0.4,
-                    delay: 0.7
-                  }} viewport={{
-                    once: true
-                  }} className="space-y-2">
-                      <Label htmlFor="password">كلمة المرور</Label>
-                      <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required dir="ltr" />
-                    </motion.div>
-                    <motion.div initial={{
-                    opacity: 0,
-                    x: -20
-                  }} whileInView={{
-                    opacity: 1,
-                    x: 0
-                  }} transition={{
-                    duration: 0.4,
-                    delay: 0.8
-                  }} viewport={{
-                    once: true
-                  }} className="space-y-2">
-                      <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                      <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required dir="ltr" />
-                    </motion.div>
-                  </CardContent>
-                  <CardFooter className="flex flex-col gap-4">
-                    <motion.div initial={{
-                    opacity: 0,
-                    y: 20
-                  }} whileInView={{
-                    opacity: 1,
-                    y: 0
-                  }} transition={{
-                    duration: 0.4,
-                    delay: 0.9
-                  }} viewport={{
-                    once: true
-                  }} className="w-full">
-                      <Button type="submit" className="w-full" disabled={registerLoading}>
-                        {registerLoading ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <UserPlus className="w-4 h-4 ml-2" />}
-                        إنشاء حساب
-                      </Button>
-                    </motion.div>
-                    <p className="text-sm text-muted-foreground text-center">
-                      لديك حساب؟{" "}
-                      <Link to="/auth" className="text-primary hover:underline">
-                        تسجيل الدخول
-                      </Link>
-                    </p>
-                  </CardFooter>
-                </form>
-              </Card>
+          {/* Note for scrolling */}
+          {showRegistration && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1 }}
+              viewport={{ once: true }}
+              className="mt-8 flex items-center justify-center gap-2 text-muted-foreground"
+            >
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+              <span className="text-sm">ملاحظة: يرجى التمرير للصفحة التالية للتسجيل</span>
+              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
             </motion.div>
-          </div>
+          )}
         </motion.div>
 
         {/* Scroll Indicator */}
-        <motion.button onClick={() => scrollToSection("products")} initial={{
-        opacity: 0
-      }} whileInView={{
-        opacity: 1
-      }} transition={{
-        delay: 1
-      }} viewport={{
-        once: true
-      }} animate={{
-        y: [0, 10, 0]
-      }} className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors">
+        <motion.button
+          onClick={() => scrollToSection(showRegistration ? "register" : "products")}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, y: [0, 10, 0] }}
+          transition={{
+            opacity: { delay: 1.5, duration: 0.5 },
+            y: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+          }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors"
+        >
           <ChevronDown className="w-10 h-10" />
         </motion.button>
       </section>
+
+      {/* Registration Section - Hidden for logged-in regular users */}
+      <AnimatePresence>
+        {showRegistration && (
+          <motion.section
+            id="register"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95, height: 0 }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="min-h-screen snap-start flex items-center justify-center py-20 relative overflow-hidden"
+          >
+            {/* Background with particles effect */}
+            <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
+            <div className="absolute inset-0 opacity-30">
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-primary/20 rounded-full"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                  }}
+                  animate={{
+                    y: [0, -30, 0],
+                    opacity: [0.2, 0.8, 0.2],
+                  }}
+                  transition={{
+                    duration: 3 + Math.random() * 2,
+                    repeat: Infinity,
+                    delay: Math.random() * 2,
+                  }}
+                />
+              ))}
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 100, rotateX: -10 }}
+              whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+              viewport={{ once: true, margin: "-100px" }}
+              className="container mx-auto px-4 relative z-10"
+            >
+              <div className="max-w-md mx-auto perspective-1000">
+                <motion.div
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)" }}
+                >
+                  <Card className="border-primary/20 shadow-2xl backdrop-blur-sm bg-card/90 overflow-hidden">
+                    {/* Glow effect */}
+                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+                    
+                    <CardHeader className="text-center relative">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4, type: "spring", stiffness: 200 }}
+                        viewport={{ once: true }}
+                      >
+                        <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
+                      </motion.div>
+                      <CardDescription>أنشئ حسابك وانتظر تفعيله من المالك</CardDescription>
+                    </CardHeader>
+                    
+                    <form onSubmit={handleRegister}>
+                      <CardContent className="space-y-4 relative">
+                        {[
+                          { id: "discord", label: "يوزر Discord", placeholder: "@username", value: discordUsername, onChange: setDiscordUsername, delay: 0.5 },
+                          { id: "email", label: "البريد الإلكتروني", placeholder: "example@email.com", value: email, onChange: setEmail, delay: 0.6, type: "email" },
+                          { id: "password", label: "كلمة المرور", placeholder: "••••••••", value: password, onChange: setPassword, delay: 0.7, type: "password" },
+                          { id: "confirmPassword", label: "تأكيد كلمة المرور", placeholder: "••••••••", value: confirmPassword, onChange: setConfirmPassword, delay: 0.8, type: "password" },
+                        ].map((field) => (
+                          <motion.div
+                            key={field.id}
+                            initial={{ opacity: 0, x: -30 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: field.delay, ease: [0.22, 1, 0.36, 1] }}
+                            viewport={{ once: true }}
+                            className="space-y-2"
+                          >
+                            <Label htmlFor={field.id}>{field.label}</Label>
+                            <Input
+                              id={field.id}
+                              type={field.type || "text"}
+                              placeholder={field.placeholder}
+                              value={field.value}
+                              onChange={(e) => field.onChange(e.target.value)}
+                              required
+                              dir="ltr"
+                              className="transition-all duration-300 focus:scale-[1.02] focus:shadow-lg"
+                            />
+                          </motion.div>
+                        ))}
+                      </CardContent>
+                      
+                      <CardFooter className="flex flex-col gap-4">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                          viewport={{ once: true }}
+                          className="w-full"
+                        >
+                          <Button
+                            type="submit"
+                            className="w-full relative overflow-hidden group"
+                            disabled={registerLoading}
+                          >
+                            <span className="relative z-10 flex items-center justify-center">
+                              {registerLoading ? (
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                              ) : (
+                                <UserPlus className="w-4 h-4 ml-2" />
+                              )}
+                              إنشاء حساب
+                            </span>
+                            <motion.div
+                              className="absolute inset-0 bg-primary-foreground/10"
+                              initial={{ x: "-100%" }}
+                              whileHover={{ x: "100%" }}
+                              transition={{ duration: 0.5 }}
+                            />
+                          </Button>
+                        </motion.div>
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          whileInView={{ opacity: 1 }}
+                          transition={{ delay: 1 }}
+                          viewport={{ once: true }}
+                          className="text-sm text-muted-foreground text-center"
+                        >
+                          لديك حساب؟{" "}
+                          <Link to="/auth" className="text-primary hover:underline">
+                            تسجيل الدخول
+                          </Link>
+                        </motion.p>
+                      </CardFooter>
+                    </form>
+                  </Card>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Scroll Indicator */}
+            <motion.button
+              onClick={() => scrollToSection("products")}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              viewport={{ once: true }}
+              animate={{ y: [0, 10, 0] }}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <ChevronDown className="w-10 h-10" />
+            </motion.button>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       {/* Products Section */}
       <section id="products" className="min-h-screen snap-start py-20 relative">
