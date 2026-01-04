@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus, Palette, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
+import SiteAppearanceTab from "@/components/admin/SiteAppearanceTab";
+import AnnouncementsTab from "@/components/admin/AnnouncementsTab";
 
 interface PendingUser {
   id: string;
@@ -811,7 +813,7 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-8">
+          <TabsList className="grid w-full grid-cols-9 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
@@ -854,6 +856,14 @@ const AdminPage = () => {
             <TabsTrigger value="rules" className="flex items-center gap-2">
               <ScrollText className="w-4 h-4" />
               القوانين
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              المظهر
+            </TabsTrigger>
+            <TabsTrigger value="announcements" className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              الإعلانات
             </TabsTrigger>
           </TabsList>
 
@@ -1719,6 +1729,16 @@ const AdminPage = () => {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Site Appearance Tab */}
+          <TabsContent value="appearance">
+            <SiteAppearanceTab adminEmail={user?.email} />
+          </TabsContent>
+
+          {/* Announcements Tab */}
+          <TabsContent value="announcements">
+            <AnnouncementsTab adminEmail={user?.email} />
           </TabsContent>
         </Tabs>
       </div>
