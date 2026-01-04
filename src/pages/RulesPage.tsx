@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, ScrollText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
 
 interface Rule {
   id: string;
@@ -68,7 +67,6 @@ const RulesPage = () => {
 
   return (
     <div className="min-h-screen">
-      <Navbar />
       <div className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground mb-4">القوانين</h1>
