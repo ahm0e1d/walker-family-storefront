@@ -5,19 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, GripVertical, Save, Palette, Sparkles } from "lucide-react";
+import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
 
-interface SectionItem {
+interface NavItem {
   id: string;
   name: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
-const SECTIONS: SectionItem[] = [
-  { id: "hero", name: "القسم الرئيسي", icon: "🏠" },
-  { id: "register", name: "قسم التسجيل", icon: "📝" },
-  { id: "products", name: "قسم المنتجات", icon: "🛍️" },
+const NAV_ITEMS: NavItem[] = [
+  { id: "home", name: "الرئيسية", icon: Home },
+  { id: "products", name: "المنتجات", icon: Package },
+  { id: "cart", name: "السلة", icon: ShoppingCart },
+  { id: "rules", name: "القوانين", icon: ScrollText },
+  { id: "contact", name: "تواصل معنا", icon: MessageCircle },
 ];
 
 const TRANSITIONS = [
@@ -35,7 +37,7 @@ interface SiteAppearanceTabProps {
 }
 
 const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
-  const [sectionOrder, setSectionOrder] = useState<string[]>(["hero", "register", "products"]);
+  const [navOrder, setNavOrder] = useState<string[]>(["home", "products", "cart", "rules", "contact"]);
   const [transitionType, setTransitionType] = useState("slide");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -55,8 +57,8 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
 
       if (data) {
         data.forEach((setting: { key: string; value: unknown }) => {
-          if (setting.key === "section_order" && Array.isArray(setting.value)) {
-            setSectionOrder(setting.value as string[]);
+          if (setting.key === "navbar_order" && Array.isArray(setting.value)) {
+            setNavOrder(setting.value as string[]);
           }
           if (setting.key === "transition_type" && typeof setting.value === "string") {
             setTransitionType(setting.value);
@@ -73,12 +75,12 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save section order
+      // Save navbar order
       await supabase.functions.invoke("manage-site-settings", {
         body: { 
           action: "update", 
-          key: "section_order", 
-          value: sectionOrder,
+          key: "navbar_order", 
+          value: navOrder,
           admin_email: adminEmail
         }
       });
@@ -95,7 +97,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
 
       toast({
         title: "تم الحفظ",
-        description: "تم حفظ إعدادات المظهر بنجاح"
+        description: "تم حفظ إعدادات المظهر بنجاح. أعد تحميل الصفحة لرؤية التغييرات."
       });
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -109,9 +111,9 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
     }
   };
 
-  const orderedSections = sectionOrder.map(id => 
-    SECTIONS.find(s => s.id === id) || { id, name: id, icon: "📄" }
-  );
+  const orderedItems = navOrder
+    .map(id => NAV_ITEMS.find(item => item.id === id))
+    .filter(Boolean) as NavItem[];
 
   if (loading) {
     return (
@@ -123,42 +125,64 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Section Order */}
+      {/* Navbar Order */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="w-5 h-5" />
-            ترتيب الأقسام
+            ترتيب الشريط العلوي (Navbar)
           </CardTitle>
           <CardDescription>
-            اسحب وأفلت لتغيير ترتيب الأقسام في الصفحة الرئيسية
+            اسحب وأفلت لتغيير ترتيب العناصر في شريط التنقل العلوي
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Reorder.Group 
             axis="y" 
-            values={sectionOrder} 
-            onReorder={setSectionOrder}
+            values={navOrder} 
+            onReorder={setNavOrder}
             className="space-y-2"
           >
-            {orderedSections.map((section) => (
-              <Reorder.Item
-                key={section.id}
-                value={section.id}
-                className="cursor-grab active:cursor-grabbing"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border hover:border-primary/50 transition-colors"
+            {orderedItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Reorder.Item
+                  key={item.id}
+                  value={item.id}
+                  className="cursor-grab active:cursor-grabbing"
                 >
-                  <GripVertical className="w-5 h-5 text-muted-foreground" />
-                  <span className="text-xl">{section.icon}</span>
-                  <span className="font-medium">{section.name}</span>
-                </motion.div>
-              </Reorder.Item>
-            ))}
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="flex items-center gap-3 p-4 bg-muted/50 rounded-lg border border-border hover:border-primary/50 transition-colors"
+                  >
+                    <GripVertical className="w-5 h-5 text-muted-foreground" />
+                    <Icon className="w-5 h-5 text-primary" />
+                    <span className="font-medium">{item.name}</span>
+                  </motion.div>
+                </Reorder.Item>
+              );
+            })}
           </Reorder.Group>
+          
+          {/* Preview */}
+          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+            <p className="text-sm text-muted-foreground mb-3">معاينة الترتيب:</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {orderedItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-2 px-3 py-2 bg-background rounded-lg border"
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm">{item.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -170,7 +194,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
             نوع الانتقالات
           </CardTitle>
           <CardDescription>
-            اختر تأثير الانتقال بين الأقسام
+            اختر تأثير الانتقال للصفحات
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
