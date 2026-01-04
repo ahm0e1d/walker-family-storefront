@@ -25,11 +25,21 @@ const AnnouncementBanner = () => {
       const { data, error } = await supabase
         .from("announcements")
         .select("id, title, content, type")
-        .eq("is_active", true)
-        .or("expires_at.is.null,expires_at.gt.now()");
+        .eq("is_active", true);
 
-      if (error) throw error;
-      setAnnouncements(data || []);
+      if (error) {
+        console.error("Error fetching announcements:", error);
+        return;
+      }
+      
+      // Filter expired announcements client-side
+      const now = new Date();
+      const validAnnouncements = (data || []).filter((a: any) => {
+        if (!a.expires_at) return true;
+        return new Date(a.expires_at) > now;
+      });
+      
+      setAnnouncements(validAnnouncements);
     } catch (error) {
       console.error("Error fetching announcements:", error);
     }
