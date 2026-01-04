@@ -9,6 +9,8 @@ const corsHeaders = {
 interface ApproveRequest {
   pending_user_id: string;
   action: "approve" | "reject";
+  admin_email?: string;
+  admin_discord?: string;
 }
 
 serve(async (req: Request) => {
@@ -21,9 +23,9 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { pending_user_id, action }: ApproveRequest = await req.json();
+    const { pending_user_id, action, admin_email, admin_discord }: ApproveRequest = await req.json();
 
-    console.log("Approval action:", { pending_user_id, action });
+    console.log("Approval action:", { pending_user_id, action, admin_email, admin_discord });
 
     if (!pending_user_id || !action) {
       return new Response(
@@ -55,7 +57,9 @@ serve(async (req: Request) => {
           id: pendingUser.id, // Use the same ID (auth user id)
           email: pendingUser.email,
           discord_username: pendingUser.discord_username,
-          password_hash: pendingUser.password_hash
+          password_hash: pendingUser.password_hash,
+          approved_by_email: admin_email || null,
+          approved_by_discord: admin_discord || null
         });
 
       if (insertError) {

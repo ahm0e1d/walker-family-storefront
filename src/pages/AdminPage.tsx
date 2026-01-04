@@ -27,6 +27,8 @@ interface PendingUser {
   created_at: string;
   status: string;
   deactivation_reason?: string;
+  deactivated_by_email?: string;
+  deactivated_by_discord?: string;
 }
 
 interface ApprovedUser {
@@ -34,6 +36,8 @@ interface ApprovedUser {
   email: string;
   discord_username: string;
   created_at: string;
+  approved_by_email?: string;
+  approved_by_discord?: string;
 }
 
 interface OrderItem {
@@ -122,6 +126,11 @@ const AdminPage = () => {
   const [deactivateUserId, setDeactivateUserId] = useState<string | null>(null);
   const [deactivateReason, setDeactivateReason] = useState("");
 
+  // Remove admin with reason
+  const [isRemoveAdminDialogOpen, setIsRemoveAdminDialogOpen] = useState(false);
+  const [removeAdminUserId, setRemoveAdminUserId] = useState<string | null>(null);
+  const [removeAdminReason, setRemoveAdminReason] = useState("");
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -202,7 +211,8 @@ const AdminPage = () => {
       const { data, error } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "admin");
+        .eq("role", "admin")
+        .is("removed_at", null);
 
       if (error) throw error;
       setAdminUserIds((data || []).map(r => r.user_id));
@@ -336,10 +346,15 @@ const AdminPage = () => {
   const handleUserAction = async (userId: string, action: "approve" | "reject") => {
     setActionLoading(userId);
     try {
+      // Get current admin info
+      const currentAdminUser = approvedUsers.find(u => u.id === user?.id);
+      
       const { data, error } = await supabase.functions.invoke("approve-user", {
         body: {
           pending_user_id: userId,
           action,
+          admin_email: user?.email,
+          admin_discord: currentAdminUser?.discord_username
         },
       });
 
@@ -390,8 +405,16 @@ const AdminPage = () => {
 
     setDeactivatingUser(deactivateUserId);
     try {
+      // Get current admin info
+      const currentAdminUser = approvedUsers.find(u => u.id === user?.id);
+      
       const { data, error } = await supabase.functions.invoke("deactivate-user", {
-        body: { user_id: deactivateUserId, reason: deactivateReason },
+        body: { 
+          user_id: deactivateUserId, 
+          reason: deactivateReason,
+          admin_email: user?.email,
+          admin_discord: currentAdminUser?.discord_username
+        },
       });
 
       if (error) throw error;
@@ -428,11 +451,26 @@ const AdminPage = () => {
   };
 
   // Admin management functions
-  const handleManageAdmin = async (userId: string, action: "add" | "remove") => {
+  const openRemoveAdminDialog = (userId: string) => {
+    setRemoveAdminUserId(userId);
+    setRemoveAdminReason("");
+    setIsRemoveAdminDialogOpen(true);
+  };
+
+  const handleManageAdmin = async (userId: string, action: "add" | "remove", reason?: string) => {
     setManagingAdmin(userId);
     try {
+      // Get current admin info
+      const currentAdminUser = approvedUsers.find(u => u.id === user?.id);
+      
       const { data, error } = await supabase.functions.invoke("manage-admin", {
-        body: { approved_user_id: userId, action },
+        body: { 
+          approved_user_id: userId, 
+          action,
+          admin_email: user?.email,
+          admin_discord: currentAdminUser?.discord_username,
+          removal_reason: reason
+        },
       });
 
       if (error) throw error;
@@ -1189,23 +1227,33 @@ const AdminPage = () => {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex items-center justify-between">
-                        <p className="text-muted-foreground">{approvedUser.email}</p>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => openDeactivateDialog(approvedUser.id)}
-                          disabled={deactivatingUser === approvedUser.id}
-                        >
-                          {deactivatingUser === approvedUser.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <UserX className="w-4 h-4 ml-1" />
-                              إلغاء التفعيل
-                            </>
-                          )}
-                        </Button>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-muted-foreground">{approvedUser.email}</p>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => openDeactivateDialog(approvedUser.id)}
+                            disabled={deactivatingUser === approvedUser.id}
+                          >
+                            {deactivatingUser === approvedUser.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <UserX className="w-4 h-4 ml-1" />
+                                إلغاء التفعيل
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {(approvedUser.approved_by_discord || approvedUser.approved_by_email) && (
+                          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+                            <p className="text-xs text-muted-foreground">
+                              <span className="font-medium">تم التفعيل بواسطة:</span>{" "}
+                              {approvedUser.approved_by_discord || approvedUser.approved_by_email}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -1296,6 +1344,14 @@ const AdminPage = () => {
                             <p className="text-sm text-foreground">{deactivatedUser.deactivation_reason}</p>
                           </div>
                         )}
+                        {(deactivatedUser.deactivated_by_discord || deactivatedUser.deactivated_by_email) && (
+                          <div className="bg-muted/50 border border-border rounded-lg p-3">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">تم بواسطة:</p>
+                            <p className="text-sm text-foreground">
+                              {deactivatedUser.deactivated_by_discord || deactivatedUser.deactivated_by_email}
+                            </p>
+                          </div>
+                        )}
                         <Button
                           size="sm"
                           className="bg-green-600 hover:bg-green-700"
@@ -1356,7 +1412,7 @@ const AdminPage = () => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleManageAdmin(adminUser.id, "remove")}
+                              onClick={() => openRemoveAdminDialog(adminUser.id)}
                               disabled={managingAdmin === adminUser.id}
                             >
                               {managingAdmin === adminUser.id ? (
@@ -1422,6 +1478,60 @@ const AdminPage = () => {
                 )}
               </div>
             </div>
+
+            {/* Remove Admin Dialog */}
+            <Dialog open={isRemoveAdminDialogOpen} onOpenChange={(open) => {
+              setIsRemoveAdminDialogOpen(open);
+              if (!open) {
+                setRemoveAdminUserId(null);
+                setRemoveAdminReason("");
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>سحب صلاحية الأدمن</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label>سبب سحب الأدمنية *</Label>
+                    <Input
+                      value={removeAdminReason}
+                      onChange={(e) => setRemoveAdminReason(e.target.value)}
+                      placeholder="أدخل سبب سحب صلاحية الأدمن"
+                      className="mt-2"
+                    />
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      if (!removeAdminReason.trim()) {
+                        toast({
+                          title: "خطأ",
+                          description: "الرجاء إدخال سبب سحب الأدمنية",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      if (removeAdminUserId) {
+                        await handleManageAdmin(removeAdminUserId, "remove", removeAdminReason);
+                        setIsRemoveAdminDialogOpen(false);
+                        setRemoveAdminUserId(null);
+                        setRemoveAdminReason("");
+                      }
+                    }}
+                    disabled={managingAdmin === removeAdminUserId}
+                    className="w-full"
+                  >
+                    {managingAdmin === removeAdminUserId ? (
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    ) : (
+                      <X className="w-4 h-4 ml-2" />
+                    )}
+                    تأكيد سحب الأدمنية
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="rules">

@@ -11,6 +11,8 @@ const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/145714272967393297
 interface DeactivateRequest {
   user_id: string;
   reason: string;
+  admin_email?: string;
+  admin_discord?: string;
 }
 
 serve(async (req: Request) => {
@@ -23,9 +25,9 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { user_id, reason }: DeactivateRequest = await req.json();
+    const { user_id, reason, admin_email, admin_discord }: DeactivateRequest = await req.json();
 
-    console.log("Deactivate user request:", { user_id, reason });
+    console.log("Deactivate user request:", { user_id, reason, admin_email, admin_discord });
 
     if (!user_id) {
       return new Response(
@@ -85,6 +87,8 @@ serve(async (req: Request) => {
         password_hash: approvedUser.password_hash,
         status: "rejected",
         deactivation_reason: reason,
+        deactivated_by_email: admin_email || null,
+        deactivated_by_discord: admin_discord || null,
       }, { onConflict: 'email' });
 
     if (upsertError) {
