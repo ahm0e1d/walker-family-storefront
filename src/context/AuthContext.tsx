@@ -20,11 +20,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const checkAdminRole = async (userId: string) => {
+  const checkAdminRole = async (email: string) => {
+    // First, find the approved user by email
+    const { data: approvedUser, error: approvedError } = await supabase
+      .from("approved_users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (approvedError || !approvedUser) {
+      console.error("Error finding approved user:", approvedError);
+      return false;
+    }
+
+    // Then check if this approved user has admin role
     const { data, error } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
+      .eq("user_id", approvedUser.id)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -44,9 +57,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         // Defer role check with setTimeout to avoid deadlock
-        if (session?.user) {
+        if (session?.user?.email) {
           setTimeout(() => {
-            checkAdminRole(session.user.id).then(setIsAdmin);
+            checkAdminRole(session.user.email!).then(setIsAdmin);
           }, 0);
         } else {
           setIsAdmin(false);
@@ -59,8 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       
-      if (session?.user) {
-        checkAdminRole(session.user.id).then((isAdminUser) => {
+      if (session?.user?.email) {
+        checkAdminRole(session.user.email).then((isAdminUser) => {
           setIsAdmin(isAdminUser);
           setLoading(false);
         });
