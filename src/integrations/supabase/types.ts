@@ -96,6 +96,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          deactivation_reason: string | null
           discord_username: string
           email: string
           id: string
@@ -106,6 +107,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          deactivation_reason?: string | null
           discord_username: string
           email: string
           id?: string
@@ -116,6 +118,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          deactivation_reason?: string | null
           discord_username?: string
           email?: string
           id?: string

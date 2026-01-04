@@ -76,6 +76,21 @@ serve(async (req: Request) => {
       .delete()
       .eq("user_id", user_id);
 
+    // Add to pending_users with rejected status and reason
+    const { error: insertError } = await supabase
+      .from("pending_users")
+      .insert({
+        email: approvedUser.email,
+        discord_username: approvedUser.discord_username,
+        password_hash: approvedUser.password_hash,
+        status: "rejected",
+        deactivation_reason: reason,
+      });
+
+    if (insertError) {
+      console.error("Insert to pending_users error:", insertError);
+    }
+
     console.log("User deactivated:", approvedUser.discord_username);
 
     // Send Discord webhook

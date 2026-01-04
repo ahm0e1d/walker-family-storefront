@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ interface PendingUser {
   discord_username: string;
   created_at: string;
   status: string;
+  deactivation_reason?: string;
 }
 
 interface ApprovedUser {
@@ -90,6 +91,11 @@ const AdminPage = () => {
   // Approved users state
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
   const [approvedUsersLoading, setApprovedUsersLoading] = useState(true);
+
+  // Deactivated users state
+  const [deactivatedUsers, setDeactivatedUsers] = useState<PendingUser[]>([]);
+  const [deactivatedLoading, setDeactivatedLoading] = useState(true);
+  const [reactivatingUser, setReactivatingUser] = useState<string | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
 
   // Rules state
@@ -138,8 +144,56 @@ const AdminPage = () => {
       fetchApprovedUsers();
       fetchRulesData();
       fetchAdmins();
+      fetchDeactivatedUsers();
     }
   }, [isAdmin]);
+
+  const fetchDeactivatedUsers = async () => {
+    setDeactivatedLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("pending_users")
+        .select("*")
+        .eq("status", "rejected")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDeactivatedUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching deactivated users:", error);
+    } finally {
+      setDeactivatedLoading(false);
+    }
+  };
+
+  const handleReactivateUser = async (userId: string) => {
+    setReactivatingUser(userId);
+    try {
+      const { error } = await supabase
+        .from("pending_users")
+        .update({ status: "pending", deactivation_reason: null })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "تم!",
+        description: "تم إزالة المستخدم من القائمة السوداء وإعادته للطلبات المعلقة",
+      });
+
+      setDeactivatedUsers(prev => prev.filter(u => u.id !== userId));
+      fetchPendingUsers();
+    } catch (error) {
+      console.error("Reactivate error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إعادة التفعيل",
+        variant: "destructive",
+      });
+    } finally {
+      setReactivatingUser(null);
+    }
+  };
 
   const fetchAdmins = async () => {
     setAdminsLoading(true);
@@ -718,7 +772,7 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
@@ -744,6 +798,15 @@ const AdminPage = () => {
             <TabsTrigger value="approved-users" className="flex items-center gap-2">
               <UserCheck className="w-4 h-4" />
               المفعلين
+            </TabsTrigger>
+            <TabsTrigger value="blacklist" className="flex items-center gap-2">
+              <Ban className="w-4 h-4" />
+              الموقوفين
+              {deactivatedUsers.length > 0 && (
+                <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
+                  {deactivatedUsers.length}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="admins" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
@@ -1187,6 +1250,73 @@ const AdminPage = () => {
               </div>
             </DialogContent>
           </Dialog>
+
+          {/* Blacklist Tab */}
+          <TabsContent value="blacklist">
+            <div className="flex justify-end mb-6">
+              <Button onClick={fetchDeactivatedUsers} variant="outline" size="sm">
+                <RefreshCw className={`w-4 h-4 ml-2 ${deactivatedLoading ? "animate-spin" : ""}`} />
+                تحديث
+              </Button>
+            </div>
+
+            {deactivatedLoading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+              </div>
+            ) : deactivatedUsers.length === 0 ? (
+              <Card>
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Ban className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  لا يوجد مستخدمين موقوفين
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {deactivatedUsers.map((deactivatedUser) => (
+                  <Card key={deactivatedUser.id} className="border-destructive/30 bg-destructive/5">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Ban className="w-5 h-5 text-destructive" />
+                          <span>{deactivatedUser.discord_username}</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground font-normal">
+                          {new Date(deactivatedUser.created_at).toLocaleDateString("ar-SA")}
+                        </span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <p className="text-muted-foreground">{deactivatedUser.email}</p>
+                        {deactivatedUser.deactivation_reason && (
+                          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+                            <p className="text-sm font-medium text-destructive mb-1">سبب الإيقاف:</p>
+                            <p className="text-sm text-foreground">{deactivatedUser.deactivation_reason}</p>
+                          </div>
+                        )}
+                        <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                          onClick={() => handleReactivateUser(deactivatedUser.id)}
+                          disabled={reactivatingUser === deactivatedUser.id}
+                        >
+                          {reactivatingUser === deactivatedUser.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4 ml-1" />
+                              إزالة من القائمة السوداء
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
           <TabsContent value="admins">
             <div className="flex justify-end mb-6">
