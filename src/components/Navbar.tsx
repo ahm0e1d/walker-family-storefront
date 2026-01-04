@@ -5,6 +5,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import NotificationBell from "@/components/NotificationBell";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ShopUser {
   id: string;
@@ -12,12 +14,29 @@ interface ShopUser {
   discord_username: string;
 }
 
+interface NavLink {
+  id: string;
+  path: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+}
+
+const DEFAULT_LINKS: NavLink[] = [
+  { id: "home", path: "/", label: "الرئيسية", icon: Home },
+  { id: "products", path: "/products", label: "المنتجات", icon: Package },
+  { id: "cart", path: "/cart", label: "السلة", icon: ShoppingCart },
+  { id: "rules", path: "/rules", label: "القوانين", icon: ScrollText },
+  { id: "contact", path: "/contact", label: "تواصل معنا", icon: MessageCircle },
+];
+
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { cartItemsCount } = useShop();
   const { user, isAdmin, signOut } = useAuth();
   const [shopUser, setShopUser] = useState<ShopUser | null>(null);
+  const [navOrder, setNavOrder] = useState<string[]>(["home", "products", "cart", "rules", "contact"]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("shop_user");
@@ -26,19 +45,49 @@ const Navbar = () => {
     }
   }, [location]);
 
+  useEffect(() => {
+    fetchNavOrder();
+  }, []);
+
+  const fetchNavOrder = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "navbar_order")
+        .maybeSingle();
+
+      if (!error && data && Array.isArray(data.value)) {
+        setNavOrder(data.value as string[]);
+      }
+    } catch (error) {
+      console.error("Error fetching nav order:", error);
+    }
+  };
+
   const handleShopLogout = () => {
     localStorage.removeItem("shop_user");
     setShopUser(null);
     navigate("/auth");
   };
 
-  const links = [
-    { path: "/", label: "الرئيسية", icon: Home },
-    { path: "/products", label: "المنتجات", icon: Package },
-    { path: "/cart", label: "السلة", icon: ShoppingCart, badge: cartItemsCount },
-    { path: "/rules", label: "القوانين", icon: ScrollText },
-    { path: "/contact", label: "تواصل معنا", icon: MessageCircle },
-  ];
+  // Order links based on saved order
+  const orderedLinks = navOrder
+    .map(id => DEFAULT_LINKS.find(l => l.id === id))
+    .filter(Boolean) as NavLink[];
+  
+  // Add any links not in the order
+  DEFAULT_LINKS.forEach(link => {
+    if (!orderedLinks.find(l => l.id === link.id)) {
+      orderedLinks.push(link);
+    }
+  });
+
+  // Add badge to cart
+  const linksWithBadge = orderedLinks.map(link => ({
+    ...link,
+    badge: link.id === "cart" ? cartItemsCount : undefined
+  }));
 
   const handleLogout = async () => {
     await signOut();
@@ -53,7 +102,7 @@ const Navbar = () => {
           </Link>
 
           <div className="flex items-center gap-4">
-            {links.map((link) => {
+            {linksWithBadge.map((link) => {
               const Icon = link.icon;
               const isActive = location.pathname === link.path;
               return (
@@ -76,6 +125,9 @@ const Navbar = () => {
                 </Link>
               );
             })}
+
+            {/* Notification Bell */}
+            <NotificationBell />
 
             {user ? (
               <>
