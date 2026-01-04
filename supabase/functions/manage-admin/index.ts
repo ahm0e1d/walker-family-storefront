@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1457142786498236522/ipk_45BtgnxJc1p3UYx3FnoOE6LTbKVyjTaWJhJOZWCnNo7o3G5erqsESH0wGRiqvOmc";
+const DISCORD_DEACTIVATION_WEBHOOK_URL = "https://discord.com/api/webhooks/1457142729673932972/HIrz3mpXm177kDBDKxF1KuvG22PVZH8S1SCKxh9ThYqel3Ou1-dHmofN2oknvkMw7gII";
 
 interface ManageAdminRequest {
   approved_user_id: string;
@@ -198,7 +199,8 @@ serve(async (req: Request) => {
           timestamp: new Date().toISOString(),
         };
 
-        await fetch(DISCORD_WEBHOOK_URL, {
+        // Send to deactivation webhook (same as user deactivation)
+        await fetch(DISCORD_DEACTIVATION_WEBHOOK_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ embeds: [embed] }),
