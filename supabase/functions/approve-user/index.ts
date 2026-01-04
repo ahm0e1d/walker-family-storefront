@@ -48,10 +48,11 @@ serve(async (req: Request) => {
     }
 
     if (action === "approve") {
-      // Create approved user
+      // Create approved user with the same ID as pending user (which is the auth user id)
       const { error: insertError } = await supabase
         .from("approved_users")
         .insert({
+          id: pendingUser.id, // Use the same ID (auth user id)
           email: pendingUser.email,
           discord_username: pendingUser.discord_username,
           password_hash: pendingUser.password_hash
