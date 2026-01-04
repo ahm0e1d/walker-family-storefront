@@ -76,19 +76,19 @@ serve(async (req: Request) => {
       .delete()
       .eq("user_id", user_id);
 
-    // Add to pending_users with rejected status and reason
-    const { error: insertError } = await supabase
+    // Add to pending_users with rejected status and reason (upsert to handle existing records)
+    const { error: upsertError } = await supabase
       .from("pending_users")
-      .insert({
+      .upsert({
         email: approvedUser.email,
         discord_username: approvedUser.discord_username,
         password_hash: approvedUser.password_hash,
         status: "rejected",
         deactivation_reason: reason,
-      });
+      }, { onConflict: 'email' });
 
-    if (insertError) {
-      console.error("Insert to pending_users error:", insertError);
+    if (upsertError) {
+      console.error("Upsert to pending_users error:", upsertError);
     }
 
     console.log("User deactivated:", approvedUser.discord_username);
