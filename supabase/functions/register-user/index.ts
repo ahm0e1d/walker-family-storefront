@@ -91,17 +91,41 @@ serve(async (req: Request) => {
       );
     }
 
-    // Simple password hash (in production, use bcrypt)
+    // Simple password hash for shop login
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
     const hashBuffer = await crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const passwordHash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
-    // Insert pending user
+    // Create auth user first (for admin panel access later)
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        discord_username
+      }
+    });
+
+    if (authError) {
+      console.error("Auth user creation error:", authError);
+      // If user already exists in auth, that's okay - continue
+      if (!authError.message.includes("already been registered")) {
+        return new Response(
+          JSON.stringify({ error: "حدث خطأ أثناء إنشاء الحساب" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    const authUserId = authUser?.user?.id;
+
+    // Insert pending user with auth user id if available
     const { data: newUser, error: insertError } = await supabase
       .from("pending_users")
       .insert({
+        id: authUserId, // Use auth user id if available
         email,
         password_hash: passwordHash,
         discord_username,

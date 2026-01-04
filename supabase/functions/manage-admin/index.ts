@@ -65,50 +65,11 @@ serve(async (req: Request) => {
         );
       }
 
-      // Check if auth user exists with this email
-      const { data: existingAuthUser } = await supabase.auth.admin.listUsers();
-      const authUserExists = existingAuthUser?.users?.some(u => u.email === approvedUser.email);
-
-      let authUserId = approved_user_id;
-
-      if (!authUserExists) {
-        // Create auth user with the same ID as approved_user
-        // Generate a temporary password (user should reset it)
-        const tempPassword = crypto.randomUUID().slice(0, 16);
-        
-        const { data: newAuthUser, error: authError } = await supabase.auth.admin.createUser({
-          email: approvedUser.email,
-          password: tempPassword,
-          email_confirm: true,
-          user_metadata: {
-            discord_username: approvedUser.discord_username
-          }
-        });
-
-        if (authError) {
-          console.error("Auth user creation error:", authError);
-          return new Response(
-            JSON.stringify({ error: "حدث خطأ أثناء إنشاء حساب المصادقة" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        authUserId = newAuthUser.user.id;
-
-        // Update approved_users with the auth user id
-        await supabase
-          .from("approved_users")
-          .update({ id: authUserId })
-          .eq("id", approved_user_id);
-
-        console.log("Auth user created with temp password");
-      }
-
-      // Add admin role
+      // Add admin role (user already has auth account from registration)
       const { error: insertError } = await supabase
         .from("user_roles")
         .insert({
-          user_id: authUserId,
+          user_id: approved_user_id,
           role: "admin"
         });
 
@@ -130,7 +91,7 @@ serve(async (req: Request) => {
           fields: [
             {
               name: "ID المستخدم",
-              value: authUserId,
+              value: approved_user_id,
               inline: true,
             },
             {
