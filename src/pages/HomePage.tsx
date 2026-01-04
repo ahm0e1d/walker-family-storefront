@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Loader2, Users, ShoppingBag, UserPlus } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
+import { motion, useScroll } from "framer-motion";
+import { Loader2, Users, ShoppingBag, UserPlus, ChevronDown } from "lucide-react";
+import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { useShop } from "@/context/ShopContext";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,10 @@ const HomePage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [discordUsername, setDiscordUsername] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
-  const navigate = useNavigate();
   const { toast } = useToast();
+  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ container: containerRef });
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,20 +96,65 @@ const HomePage = () => {
     }
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    element?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="min-h-screen">
+    <div 
+      ref={containerRef}
+      className="h-screen overflow-y-auto scroll-smooth snap-y snap-mandatory"
+    >
+      {/* Progress Bar */}
+      <motion.div 
+        className="fixed top-0 left-0 right-0 h-1 bg-primary z-50 origin-left"
+        style={{ scaleX: scrollYProgress }}
+      />
+
       {/* Hero Section */}
-      <section className="py-20 text-center">
-        <div className="container mx-auto px-4">
-          <h1 className="text-5xl md:text-7xl font-extrabold mb-6">
+      <section 
+        id="hero"
+        className="min-h-screen snap-start flex flex-col items-center justify-center relative overflow-hidden"
+      >
+        {/* Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true }}
+          className="container mx-auto px-4 text-center relative z-10"
+        >
+          <motion.h1 
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true }}
+            className="text-5xl md:text-7xl font-extrabold mb-6"
+          >
             <span className="text-gradient">Walker Family Shop</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6"
+          >
             مرحباً بكم في متجرنا العائلي - نوفر لكم أفضل المنتجات بأفضل الأسعار
-          </p>
+          </motion.p>
           
           {/* Owner & Team */}
-          <div className="flex flex-col items-center gap-3 mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            viewport={{ once: true }}
+            className="flex flex-col items-center gap-3 mb-8"
+          >
             <div className="flex items-center gap-2 bg-primary/10 px-6 py-3 rounded-full border border-primary/20">
               <span className="text-muted-foreground">مالك المتجر:</span>
               <span className="font-bold text-primary text-lg">@w8jl</span>
@@ -118,10 +166,16 @@ const HomePage = () => {
                 <span className="bg-secondary px-3 py-1 rounded-full text-secondary-foreground font-medium">@3.bb3</span>
               </div>
             </div>
-          </div>
+          </motion.div>
           
           {/* Discord Links */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            viewport={{ once: true }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+          >
             <a 
               href="https://discord.gg/BuymXGjbdU" 
               target="_blank" 
@@ -149,108 +203,219 @@ const HomePage = () => {
                 سيرفر المتجر
               </Button>
             </a>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.button
+          onClick={() => scrollToSection("register")}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, y: [0, 10, 0] }}
+          transition={{ 
+            opacity: { delay: 1.5, duration: 0.5 },
+            y: { repeat: Infinity, duration: 1.5, ease: "easeInOut" }
+          }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ChevronDown className="w-10 h-10" />
+        </motion.button>
       </section>
 
       {/* Registration Section */}
-      <section className="py-12 bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section 
+        id="register"
+        className="min-h-screen snap-start flex items-center justify-center py-20 relative overflow-hidden"
+      >
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
+        
+        <motion.div 
+          initial={{ opacity: 0, x: -100 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: true, margin: "-100px" }}
+          className="container mx-auto px-4 relative z-10"
+        >
           <div className="max-w-md mx-auto">
-            <Card className="border-primary/20 shadow-xl">
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
-                <CardDescription>
-                  أنشئ حسابك وانتظر تفعيله من المالك
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleRegister}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="discord">يوزر Discord</Label>
-                    <Input
-                      id="discord"
-                      type="text"
-                      placeholder="@username"
-                      value={discordUsername}
-                      onChange={(e) => setDiscordUsername(e.target.value)}
-                      required
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="example@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">كلمة المرور</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      dir="ltr"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                      dir="ltr"
-                    />
-                  </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                  <Button type="submit" className="w-full" disabled={registerLoading}>
-                    {registerLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                    ) : (
-                      <UserPlus className="w-4 h-4 ml-2" />
-                    )}
-                    إنشاء حساب
-                  </Button>
-                  <p className="text-sm text-muted-foreground text-center">
-                    لديك حساب؟{" "}
-                    <Link to="/auth" className="text-primary hover:underline">
-                      تسجيل الدخول
-                    </Link>
-                  </p>
-                </CardFooter>
-              </form>
-            </Card>
+            <motion.div
+              initial={{ opacity: 0, y: 50, rotateX: -15 }}
+              whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
+              <Card className="border-primary/20 shadow-2xl backdrop-blur-sm bg-card/90">
+                <CardHeader className="text-center">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    whileInView={{ scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.4, type: "spring" }}
+                    viewport={{ once: true }}
+                  >
+                    <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
+                  </motion.div>
+                  <CardDescription>
+                    أنشئ حسابك وانتظر تفعيله من المالك
+                  </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleRegister}>
+                  <CardContent className="space-y-4">
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.5 }}
+                      viewport={{ once: true }}
+                      className="space-y-2"
+                    >
+                      <Label htmlFor="discord">يوزر Discord</Label>
+                      <Input
+                        id="discord"
+                        type="text"
+                        placeholder="@username"
+                        value={discordUsername}
+                        onChange={(e) => setDiscordUsername(e.target.value)}
+                        required
+                        dir="ltr"
+                      />
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.6 }}
+                      viewport={{ once: true }}
+                      className="space-y-2"
+                    >
+                      <Label htmlFor="email">البريد الإلكتروني</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="example@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        dir="ltr"
+                      />
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.7 }}
+                      viewport={{ once: true }}
+                      className="space-y-2"
+                    >
+                      <Label htmlFor="password">كلمة المرور</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        dir="ltr"
+                      />
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.8 }}
+                      viewport={{ once: true }}
+                      className="space-y-2"
+                    >
+                      <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        dir="ltr"
+                      />
+                    </motion.div>
+                  </CardContent>
+                  <CardFooter className="flex flex-col gap-4">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.9 }}
+                      viewport={{ once: true }}
+                      className="w-full"
+                    >
+                      <Button type="submit" className="w-full" disabled={registerLoading}>
+                        {registerLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                        ) : (
+                          <UserPlus className="w-4 h-4 ml-2" />
+                        )}
+                        إنشاء حساب
+                      </Button>
+                    </motion.div>
+                    <p className="text-sm text-muted-foreground text-center">
+                      لديك حساب؟{" "}
+                      <Link to="/auth" className="text-primary hover:underline">
+                        تسجيل الدخول
+                      </Link>
+                    </p>
+                  </CardFooter>
+                </form>
+              </Card>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <motion.button
+          onClick={() => scrollToSection("products")}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          viewport={{ once: true }}
+          animate={{ y: [0, 10, 0] }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ChevronDown className="w-10 h-10" />
+        </motion.button>
       </section>
 
       {/* Products Section */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-foreground mb-8 text-center">
-            منتجاتنا
-          </h2>
+      <section 
+        id="products"
+        className="min-h-screen snap-start py-20 relative"
+      >
+        {/* Background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.h2 
+            initial={{ opacity: 0, y: -30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-foreground mb-12 text-center"
+          >
+            <span className="text-gradient">منتجاتنا</span>
+          </motion.h2>
+          
           {loading ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-12 h-12 animate-spin text-primary" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {products.map((product, index) => (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    duration: 0.5, 
+                    delay: index * 0.1,
+                    ease: "easeOut"
+                  }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  whileHover={{ y: -10, transition: { duration: 0.2 } }}
+                >
+                  <ProductCard product={product} />
+                </motion.div>
               ))}
             </div>
           )}
