@@ -47,19 +47,21 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke("manage-site-settings", {
-        body: { action: "get" }
-      });
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("key, value");
 
       if (error) throw error;
 
-      if (data.settings) {
-        if (data.settings.section_order) {
-          setSectionOrder(data.settings.section_order);
-        }
-        if (data.settings.transition_type) {
-          setTransitionType(data.settings.transition_type);
-        }
+      if (data) {
+        data.forEach((setting: { key: string; value: unknown }) => {
+          if (setting.key === "section_order" && Array.isArray(setting.value)) {
+            setSectionOrder(setting.value as string[]);
+          }
+          if (setting.key === "transition_type" && typeof setting.value === "string") {
+            setTransitionType(setting.value);
+          }
+        });
       }
     } catch (error) {
       console.error("Error fetching settings:", error);

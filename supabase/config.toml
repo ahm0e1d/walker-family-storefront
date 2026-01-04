@@ -26,3 +26,9 @@ verify_jwt = false
 
 [functions.manage-admin]
 verify_jwt = false
+
+[functions.manage-site-settings]
+verify_jwt = false
+
+[functions.manage-announcements]
+verify_jwt = false
