@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       approved_users: {
         Row: {
+          approved_by_discord: string | null
+          approved_by_email: string | null
           created_at: string
           discord_username: string
           email: string
@@ -24,6 +26,8 @@ export type Database = {
           password_hash: string
         }
         Insert: {
+          approved_by_discord?: string | null
+          approved_by_email?: string | null
           created_at?: string
           discord_username: string
           email: string
@@ -32,6 +36,8 @@ export type Database = {
           password_hash: string
         }
         Update: {
+          approved_by_discord?: string | null
+          approved_by_email?: string | null
           created_at?: string
           discord_username?: string
           email?: string
@@ -96,6 +102,8 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           created_at: string
+          deactivated_by_discord: string | null
+          deactivated_by_email: string | null
           deactivation_reason: string | null
           discord_username: string
           email: string
@@ -107,6 +115,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          deactivated_by_discord?: string | null
+          deactivated_by_email?: string | null
           deactivation_reason?: string | null
           discord_username: string
           email: string
@@ -118,6 +128,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
+          deactivated_by_discord?: string | null
+          deactivated_by_email?: string | null
           deactivation_reason?: string | null
           discord_username?: string
           email?: string
@@ -218,20 +230,38 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          added_by_discord: string | null
+          added_by_email: string | null
           created_at: string
           id: string
+          removal_reason: string | null
+          removed_at: string | null
+          removed_by_discord: string | null
+          removed_by_email: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          added_by_discord?: string | null
+          added_by_email?: string | null
           created_at?: string
           id?: string
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by_discord?: string | null
+          removed_by_email?: string | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          added_by_discord?: string | null
+          added_by_email?: string | null
           created_at?: string
           id?: string
+          removal_reason?: string | null
+          removed_at?: string | null
+          removed_by_discord?: string | null
+          removed_by_email?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }

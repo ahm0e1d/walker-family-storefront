@@ -11,6 +11,9 @@ const DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/145714278649823652
 interface ManageAdminRequest {
   approved_user_id: string;
   action: "add" | "remove";
+  admin_email?: string;
+  admin_discord?: string;
+  removal_reason?: string;
 }
 
 serve(async (req: Request) => {
@@ -23,9 +26,9 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { approved_user_id, action }: ManageAdminRequest = await req.json();
+    const { approved_user_id, action, admin_email, admin_discord, removal_reason }: ManageAdminRequest = await req.json();
 
-    console.log("Manage admin request:", { approved_user_id, action });
+    console.log("Manage admin request:", { approved_user_id, action, admin_email, admin_discord, removal_reason });
 
     if (!approved_user_id || !action) {
       return new Response(
@@ -70,7 +73,9 @@ serve(async (req: Request) => {
         .from("user_roles")
         .insert({
           user_id: approved_user_id,
-          role: "admin"
+          role: "admin",
+          added_by_email: admin_email || null,
+          added_by_discord: admin_discord || null
         });
 
       if (insertError) {
@@ -128,15 +133,28 @@ serve(async (req: Request) => {
       );
 
     } else if (action === "remove") {
-      // Remove admin role
-      const { error: deleteError } = await supabase
+      // Check if reason is provided
+      if (!removal_reason || !removal_reason.trim()) {
+        return new Response(
+          JSON.stringify({ error: "سبب سحب الأدمنية مطلوب" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update admin role with removal info instead of deleting
+      const { error: updateError } = await supabase
         .from("user_roles")
-        .delete()
+        .update({
+          removed_at: new Date().toISOString(),
+          removed_by_email: admin_email || null,
+          removed_by_discord: admin_discord || null,
+          removal_reason: removal_reason
+        })
         .eq("user_id", approved_user_id)
         .eq("role", "admin");
 
-      if (deleteError) {
-        console.error("Delete error:", deleteError);
+      if (updateError) {
+        console.error("Update error:", updateError);
         return new Response(
           JSON.stringify({ error: "حدث خطأ أثناء إزالة صلاحية الأدمن" }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -164,6 +182,16 @@ serve(async (req: Request) => {
             {
               name: "البريد الإلكتروني",
               value: approvedUser.email,
+              inline: true,
+            },
+            {
+              name: "السبب",
+              value: removal_reason,
+              inline: false,
+            },
+            {
+              name: "تم بواسطة",
+              value: admin_discord || admin_email || "غير معروف",
               inline: true,
             },
           ],

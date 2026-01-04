@@ -34,12 +34,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
 
-    // Then check if this approved user has admin role
+    // Then check if this approved user has admin role (not removed)
     const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", approvedUser.id)
       .eq("role", "admin")
+      .is("removed_at", null)
       .maybeSingle();
 
     if (error) {
