@@ -57,7 +57,6 @@ export type Database = {
           id: string
           last_login: string | null
           password_hash: string
-          password_plain: string | null
         }
         Insert: {
           approved_by_discord?: string | null
@@ -68,7 +67,6 @@ export type Database = {
           id?: string
           last_login?: string | null
           password_hash: string
-          password_plain?: string | null
         }
         Update: {
           approved_by_discord?: string | null
@@ -79,7 +77,6 @@ export type Database = {
           id?: string
           last_login?: string | null
           password_hash?: string
-          password_plain?: string | null
         }
         Relationships: []
       }
@@ -169,7 +166,6 @@ export type Database = {
           email: string
           id: string
           password_hash: string
-          password_plain: string | null
           status: string
         }
         Insert: {
@@ -183,7 +179,6 @@ export type Database = {
           email: string
           id?: string
           password_hash: string
-          password_plain?: string | null
           status?: string
         }
         Update: {
@@ -197,7 +192,6 @@ export type Database = {
           email?: string
           id?: string
           password_hash?: string
-          password_plain?: string | null
           status?: string
         }
         Relationships: []

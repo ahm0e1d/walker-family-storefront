@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.manage-announcements]
 verify_jwt = false
+
+[functions.reset-user-password]
+verify_jwt = false
