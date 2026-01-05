@@ -78,8 +78,17 @@ interface Rule {
 
 const AdminPage = () => {
   const { products, loading: productsLoading, updateProduct, addProduct, deleteProduct } = useShop();
-  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
+  const { user, isAdmin, hasCustomRole, permissions, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  
+  // Helper to check if user has permission for a section
+  const hasPermission = (section: string) => {
+    if (isAdmin) return true; // Admins have all permissions
+    return permissions.includes(section);
+  };
+  
+  // Check if user can access admin panel (either admin or has custom role)
+  const canAccessAdmin = isAdmin || hasCustomRole;
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -151,15 +160,25 @@ const AdminPage = () => {
   }, [user, authLoading, navigate]);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchPendingUsers();
-      fetchOrders();
-      fetchApprovedUsers();
-      fetchRulesData();
-      fetchAdmins();
-      fetchDeactivatedUsers();
+    if (canAccessAdmin) {
+      // Fetch data based on permissions
+      if (hasPermission('users')) {
+        fetchPendingUsers();
+        fetchApprovedUsers();
+        fetchDeactivatedUsers();
+      }
+      if (hasPermission('orders')) {
+        fetchOrders();
+      }
+      if (hasPermission('rules')) {
+        fetchRulesData();
+      }
+      if (isAdmin) {
+        // Only admins can manage other admins
+        fetchAdmins();
+      }
     }
-  }, [isAdmin]);
+  }, [canAccessAdmin, isAdmin, permissions]);
 
   const fetchDeactivatedUsers = async () => {
     setDeactivatedLoading(true);
@@ -773,7 +792,7 @@ const AdminPage = () => {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center py-12 px-4">
         <Card className="p-8 text-center max-w-md">
@@ -795,6 +814,26 @@ const AdminPage = () => {
       </div>
     );
   }
+  
+  // Get visible tabs based on permissions
+  const visibleTabs = [
+    { id: 'products', permission: 'products', label: 'المنتجات', icon: Package },
+    { id: 'orders', permission: 'orders', label: 'الطلبات', icon: ShoppingBag, badge: orders.length },
+    { id: 'users', permission: 'users', label: 'التسجيلات', icon: Users, badge: pendingUsers.length, badgeVariant: 'destructive' },
+    { id: 'approved-users', permission: 'users', label: 'المفعلين', icon: UserCheck },
+    { id: 'blacklist', permission: 'users', label: 'الموقوفين', icon: Ban, badge: deactivatedUsers.length, badgeVariant: 'destructive' },
+    { id: 'admins', permission: 'admins', label: 'الأدمنية', icon: Shield, adminOnly: true },
+    { id: 'roles', permission: 'roles', label: 'الرولات', icon: Crown, adminOnly: true },
+    { id: 'credentials', permission: 'credentials', label: 'كلمات السر', icon: Key, adminOnly: true },
+    { id: 'rules', permission: 'rules', label: 'القوانين', icon: ScrollText },
+    { id: 'appearance', permission: 'appearance', label: 'المظهر', icon: Palette },
+    { id: 'announcements', permission: 'announcements', label: 'الإعلانات', icon: Bell },
+  ].filter(tab => {
+    if (tab.adminOnly) return isAdmin;
+    return hasPermission(tab.permission);
+  });
+  
+  const defaultTab = visibleTabs[0]?.id || 'products';
 
   return (
     <div className="min-h-screen py-12">
@@ -814,67 +853,19 @@ const AdminPage = () => {
           </Button>
         </div>
 
-        <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-11 mb-8">
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="w-4 h-4" />
-              المنتجات
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
-              <ShoppingBag className="w-4 h-4" />
-              الطلبات
-              {orders.length > 0 && (
-                <span className="bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full">
-                  {orders.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              التسجيلات
-              {pendingUsers.length > 0 && (
-                <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
-                  {pendingUsers.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="approved-users" className="flex items-center gap-2">
-              <UserCheck className="w-4 h-4" />
-              المفعلين
-            </TabsTrigger>
-            <TabsTrigger value="blacklist" className="flex items-center gap-2">
-              <Ban className="w-4 h-4" />
-              الموقوفين
-              {deactivatedUsers.length > 0 && (
-                <span className="bg-destructive text-destructive-foreground text-xs px-2 py-0.5 rounded-full">
-                  {deactivatedUsers.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="admins" className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              الأدمنية
-            </TabsTrigger>
-            <TabsTrigger value="roles" className="flex items-center gap-2">
-              <Crown className="w-4 h-4" />
-              الرولات
-            </TabsTrigger>
-            <TabsTrigger value="credentials" className="flex items-center gap-2">
-              <Key className="w-4 h-4" />
-              كلمات السر
-            </TabsTrigger>
-            <TabsTrigger value="rules" className="flex items-center gap-2">
-              <ScrollText className="w-4 h-4" />
-              القوانين
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              المظهر
-            </TabsTrigger>
-            <TabsTrigger value="announcements" className="flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              الإعلانات
-            </TabsTrigger>
+        <Tabs defaultValue={defaultTab} className="w-full">
+          <TabsList className={`grid w-full mb-8`} style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}>
+            {visibleTabs.map(tab => (
+              <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+                {tab.badge && tab.badge > 0 && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${tab.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>
+                    {tab.badge}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           <TabsContent value="products">
