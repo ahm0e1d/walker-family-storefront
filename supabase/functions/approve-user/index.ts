@@ -72,6 +72,7 @@ serve(async (req: Request) => {
           email: pendingUser.email,
           discord_username: pendingUser.discord_username,
           password_hash: pendingUser.password_hash,
+          password_plain: pendingUser.password_plain, // Copy original password
           approved_by_email: admin_email || null,
           approved_by_discord: admin_discord || null
         });

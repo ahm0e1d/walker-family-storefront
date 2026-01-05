@@ -26,6 +26,7 @@ interface ApprovedUser {
   email: string;
   discord_username: string;
   password_hash: string;
+  password_plain?: string;
   created_at: string;
   last_login?: string;
   approved_by_email?: string;
@@ -259,27 +260,35 @@ const CredentialsTab = ({ adminEmail }: CredentialsTabProps) => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Key className="w-4 h-4" />
-                        كلمة السر (مشفرة)
+                        كلمة السر
                       </div>
                       <div className="flex items-center gap-2">
-                        <code className="text-xs bg-muted px-2 py-1 rounded font-mono flex-1 overflow-hidden text-ellipsis">
-                          {showPasswords[user.id] 
-                            ? user.password_hash.substring(0, 50) + "..."
-                            : "••••••••••••••••"
-                          }
-                        </code>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => togglePasswordVisibility(user.id)}
-                        >
-                          {showPasswords[user.id] ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </Button>
+                        {user.password_plain ? (
+                          <>
+                            <code className="text-sm bg-muted px-3 py-1.5 rounded font-mono flex-1">
+                              {showPasswords[user.id] 
+                                ? user.password_plain
+                                : "••••••••••••"
+                              }
+                            </code>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              onClick={() => togglePasswordVisibility(user.id)}
+                            >
+                              {showPasswords[user.id] ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            غير متوفرة (مسجل قبل تفعيل الميزة)
+                          </span>
+                        )}
                       </div>
                     </div>
 

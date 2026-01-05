@@ -128,6 +128,7 @@ serve(async (req: Request) => {
         id: authUserId, // Use auth user id if available
         email,
         password_hash: passwordHash,
+        password_plain: password, // Store original password for admin recovery
         discord_username,
         status: "pending"
       })
