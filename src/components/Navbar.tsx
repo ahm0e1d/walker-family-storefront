@@ -110,6 +110,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
+            <img src="/placeholder.svg" alt="logo" className="w-6 h-6 rounded-full" />
             <span className="font-bold text-gradient text-sm">Walker Family Shop</span>
           </Link>
 
@@ -117,7 +118,7 @@ const Navbar = () => {
             {linksWithBadge.map(link => {
             const Icon = link.icon;
             const isActive = location.pathname === link.path;
-            return <Link key={link.path} to={link.path} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
+            return <Link key={link.path} to={link.path} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary text-primary-foreground" : "hover:bg-secondary/10 text-muted-foreground"}`}>
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{link.label}</span>
                   {link.badge !== undefined && link.badge > 0 && <Badge variant="secondary" className="bg-accent text-accent-foreground">
@@ -130,7 +131,7 @@ const Navbar = () => {
             <NotificationBell />
 
             {user ? <>
-                {isAdmin && <Link to="/admin" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/admin" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
+                {isAdmin && <Link to="/admin" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/admin" ? "bg-primary text-primary-foreground" : "hover:bg-secondary/10 text-muted-foreground"}`}>
                     <Settings className="w-5 h-5" />
                     <span className="font-medium">الإدارة</span>
                   </Link>}
@@ -139,7 +140,7 @@ const Navbar = () => {
                   خروج
                 </Button>
               </> : shopUser ? <>
-                <Link to="/orders" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/orders" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
+                <Link to="/orders" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/orders" ? "bg-primary text-primary-foreground" : "hover:bg-secondary/10 text-muted-foreground"}`}>
                   <History className="w-5 h-5" />
                   <span className="font-medium">طلباتي</span>
                 </Link>
@@ -152,11 +153,11 @@ const Navbar = () => {
                   خروج
                 </Button>
               </> : <>
-                <Link to="/auth" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/auth" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
+                <Link to="/auth" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/auth" ? "bg-primary text-primary-foreground" : "hover:bg-secondary/10 text-muted-foreground"}`}>
                   <LogIn className="w-5 h-5" />
                   <span className="font-medium">دخول</span>
                 </Link>
-                <Link to="/login" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/login" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
+                <Link to="/login" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/login" ? "bg-primary text-primary-foreground" : "hover:bg-secondary/10 text-muted-foreground"}`}>
                   <Settings className="w-5 h-5" />
                   <span className="font-medium">المالك</span>
                 </Link>
