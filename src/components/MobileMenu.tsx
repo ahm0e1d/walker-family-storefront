@@ -23,13 +23,14 @@ interface NavLink {
 interface MobileMenuProps {
   links: NavLink[];
   isAdmin?: boolean;
+  hasCustomRole?: boolean;
   user: any;
   shopUser: any;
   onLogout: () => void;
   onShopLogout: () => void;
 }
 
-const MobileMenu = ({ links, isAdmin, user, shopUser, onLogout, onShopLogout }: MobileMenuProps) => {
+const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, onShopLogout }: MobileMenuProps) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -82,7 +83,7 @@ const MobileMenu = ({ links, isAdmin, user, shopUser, onLogout, onShopLogout }: 
 
           {user ? (
             <>
-              {isAdmin && (
+              {(isAdmin || hasCustomRole) && (
                 <Link
                   to="/admin"
                   onClick={handleLinkClick}
@@ -93,7 +94,7 @@ const MobileMenu = ({ links, isAdmin, user, shopUser, onLogout, onShopLogout }: 
                   }`}
                 >
                   <Settings className="w-5 h-5" />
-                  <span className="font-medium">الإدارة</span>
+                  <span className="font-medium">{isAdmin ? "الإدارة" : "لوحة التحكم"}</span>
                 </Link>
               )}
               <Button

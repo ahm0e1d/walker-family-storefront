@@ -58,7 +58,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { cartItemsCount } = useShop();
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, isAdmin, hasCustomRole, signOut } = useAuth();
   const [shopUser, setShopUser] = useState<ShopUser | null>(null);
   const [navOrder, setNavOrder] = useState<string[]>(["home", "products", "cart", "rules", "contact"]);
 
@@ -170,7 +170,7 @@ const Navbar = () => {
 
             {user ? (
               <>
-                {isAdmin && (
+                {(isAdmin || hasCustomRole) && (
                   <Link
                     to="/admin"
                     className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-lg transition-all duration-300 ${
@@ -180,7 +180,7 @@ const Navbar = () => {
                     }`}
                   >
                     <Settings className="w-5 h-5" />
-                    <span className="font-medium">الإدارة</span>
+                    <span className="font-medium">{isAdmin ? "الإدارة" : "لوحة التحكم"}</span>
                   </Link>
                 )}
                 <Button
@@ -254,6 +254,7 @@ const Navbar = () => {
             <MobileMenu
               links={linksWithBadge}
               isAdmin={isAdmin}
+              hasCustomRole={hasCustomRole}
               user={user}
               shopUser={shopUser}
               onLogout={handleLogout}
