@@ -80,6 +80,30 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          permissions: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          permissions?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          permissions?: Json
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           account_name: string
@@ -284,6 +308,45 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      user_custom_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_custom_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "custom_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_custom_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "approved_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus, Palette, Bell } from "lucide-react";
+import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus, Palette, Bell, Crown, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,8 @@ import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import SiteAppearanceTab from "@/components/admin/SiteAppearanceTab";
 import AnnouncementsTab from "@/components/admin/AnnouncementsTab";
+import RolesTab from "@/components/admin/RolesTab";
+import CredentialsTab from "@/components/admin/CredentialsTab";
 
 interface PendingUser {
   id: string;
@@ -813,7 +815,7 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue="products" className="w-full">
-          <TabsList className="grid w-full grid-cols-9 mb-8">
+          <TabsList className="grid w-full grid-cols-11 mb-8">
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="w-4 h-4" />
               المنتجات
@@ -852,6 +854,14 @@ const AdminPage = () => {
             <TabsTrigger value="admins" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               الأدمنية
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="flex items-center gap-2">
+              <Crown className="w-4 h-4" />
+              الرولات
+            </TabsTrigger>
+            <TabsTrigger value="credentials" className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              كلمات السر
             </TabsTrigger>
             <TabsTrigger value="rules" className="flex items-center gap-2">
               <ScrollText className="w-4 h-4" />
@@ -1739,6 +1749,16 @@ const AdminPage = () => {
           {/* Announcements Tab */}
           <TabsContent value="announcements">
             <AnnouncementsTab adminEmail={user?.email} />
+          </TabsContent>
+
+          {/* Roles Tab */}
+          <TabsContent value="roles">
+            <RolesTab adminEmail={user?.email} />
+          </TabsContent>
+
+          {/* Credentials Tab */}
+          <TabsContent value="credentials">
+            <CredentialsTab adminEmail={user?.email} />
           </TabsContent>
         </Tabs>
       </div>
