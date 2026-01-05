@@ -110,7 +110,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/placeholder.svg" alt="logo" className="w-6 h-6 rounded-full" />
+            <img src="/logo.svg?v=1" alt="Walker Family Shop logo" className="w-8 h-8 rounded-md" />
             <span className="font-bold text-gradient text-sm">Walker Family Shop</span>
           </Link>
 
