@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Key, User, Mail, Shield, Eye, EyeOff, RefreshCw, Search, UserPlus, Trash2 } from "lucide-react";
+import { Loader2, Key, User, Mail, Shield, RefreshCw, Search, UserPlus, Trash2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,7 +26,6 @@ interface ApprovedUser {
   email: string;
   discord_username: string;
   password_hash: string;
-  password_plain?: string;
   created_at: string;
   last_login?: string;
   approved_by_email?: string;
@@ -57,13 +56,18 @@ const CredentialsTab = ({ adminEmail }: CredentialsTabProps) => {
   const [userRoles, setUserRoles] = useState<UserCustomRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({});
   
   // Assign role dialog
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<ApprovedUser | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState("");
   const [assigning, setAssigning] = useState(false);
+
+  // Reset password dialog
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetUser, setResetUser] = useState<ApprovedUser | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -100,11 +104,64 @@ const CredentialsTab = ({ adminEmail }: CredentialsTabProps) => {
     }
   };
 
-  const togglePasswordVisibility = (userId: string) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [userId]: !prev[userId]
-    }));
+  const openResetDialog = (user: ApprovedUser) => {
+    setResetUser(user);
+    setNewPassword("");
+    setIsResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetUser || !newPassword) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال كلمة السر الجديدة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "خطأ",
+        description: "كلمة السر يجب أن تكون 6 أحرف على الأقل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: {
+          user_id: resetUser.id,
+          new_password: newPassword,
+          admin_email: adminEmail
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.error) {
+        toast({
+          title: "خطأ",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({ title: "تم!", description: data.message });
+      setIsResetDialogOpen(false);
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إعادة تعيين كلمة السر",
+        variant: "destructive",
+      });
+    } finally {
+      setResetting(false);
+    }
   };
 
   const getUserRoles = (userId: string) => {
@@ -263,32 +320,14 @@ const CredentialsTab = ({ adminEmail }: CredentialsTabProps) => {
                         كلمة السر
                       </div>
                       <div className="flex items-center gap-2">
-                        {user.password_plain ? (
-                          <>
-                            <code className="text-sm bg-muted px-3 py-1.5 rounded font-mono flex-1">
-                              {showPasswords[user.id] 
-                                ? user.password_plain
-                                : "••••••••••••"
-                              }
-                            </code>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8"
-                              onClick={() => togglePasswordVisibility(user.id)}
-                            >
-                              {showPasswords[user.id] ? (
-                                <EyeOff className="w-4 h-4" />
-                              ) : (
-                                <Eye className="w-4 h-4" />
-                              )}
-                            </Button>
-                          </>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            غير متوفرة (مسجل قبل تفعيل الميزة)
-                          </span>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openResetDialog(user)}
+                        >
+                          <RotateCcw className="w-4 h-4 ml-1" />
+                          إعادة تعيين
+                        </Button>
                       </div>
                     </div>
 
@@ -379,6 +418,41 @@ const CredentialsTab = ({ adminEmail }: CredentialsTabProps) => {
                 <UserPlus className="w-4 h-4 ml-2" />
               )}
               إسناد الرول
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>إعادة تعيين كلمة السر لـ {resetUser?.discord_username}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>كلمة السر الجديدة</Label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="أدخل كلمة السر الجديدة (6 أحرف على الأقل)"
+                className="mt-2"
+                dir="ltr"
+              />
+            </div>
+
+            <Button 
+              onClick={handleResetPassword} 
+              disabled={resetting || !newPassword} 
+              className="w-full"
+            >
+              {resetting ? (
+                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+              ) : (
+                <RotateCcw className="w-4 h-4 ml-2" />
+              )}
+              إعادة تعيين كلمة السر
             </Button>
           </div>
         </DialogContent>
