@@ -7,56 +7,74 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import NotificationBell from "@/components/NotificationBell";
 import { supabase } from "@/integrations/supabase/client";
-
 interface ShopUser {
   id: string;
   email: string;
   discord_username: string;
 }
-
 interface NavLink {
   id: string;
   path: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{
+    className?: string;
+  }>;
   badge?: number;
 }
-
-const DEFAULT_LINKS: NavLink[] = [
-  { id: "home", path: "/", label: "الرئيسية", icon: Home },
-  { id: "products", path: "/products", label: "المنتجات", icon: Package },
-  { id: "cart", path: "/cart", label: "السلة", icon: ShoppingCart },
-  { id: "rules", path: "/rules", label: "القوانين", icon: ScrollText },
-  { id: "contact", path: "/contact", label: "تواصل معنا", icon: MessageCircle },
-];
-
+const DEFAULT_LINKS: NavLink[] = [{
+  id: "home",
+  path: "/",
+  label: "الرئيسية",
+  icon: Home
+}, {
+  id: "products",
+  path: "/products",
+  label: "المنتجات",
+  icon: Package
+}, {
+  id: "cart",
+  path: "/cart",
+  label: "السلة",
+  icon: ShoppingCart
+}, {
+  id: "rules",
+  path: "/rules",
+  label: "القوانين",
+  icon: ScrollText
+}, {
+  id: "contact",
+  path: "/contact",
+  label: "تواصل معنا",
+  icon: MessageCircle
+}];
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { cartItemsCount } = useShop();
-  const { user, isAdmin, signOut } = useAuth();
+  const {
+    cartItemsCount
+  } = useShop();
+  const {
+    user,
+    isAdmin,
+    signOut
+  } = useAuth();
   const [shopUser, setShopUser] = useState<ShopUser | null>(null);
   const [navOrder, setNavOrder] = useState<string[]>(["home", "products", "cart", "rules", "contact"]);
-
   useEffect(() => {
     const storedUser = localStorage.getItem("shop_user");
     if (storedUser) {
       setShopUser(JSON.parse(storedUser));
     }
   }, [location]);
-
   useEffect(() => {
     fetchNavOrder();
   }, []);
-
   const fetchNavOrder = async () => {
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "navbar_order")
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await supabase.from("site_settings").select("value").eq("key", "navbar_order").maybeSingle();
       if (!error && data && Array.isArray(data.value)) {
         setNavOrder(data.value as string[]);
       }
@@ -64,7 +82,6 @@ const Navbar = () => {
       console.error("Error fetching nav order:", error);
     }
   };
-
   const handleShopLogout = () => {
     localStorage.removeItem("shop_user");
     setShopUser(null);
@@ -72,10 +89,8 @@ const Navbar = () => {
   };
 
   // Order links based on saved order
-  const orderedLinks = navOrder
-    .map(id => DEFAULT_LINKS.find(l => l.id === id))
-    .filter(Boolean) as NavLink[];
-  
+  const orderedLinks = navOrder.map(id => DEFAULT_LINKS.find(l => l.id === id)).filter(Boolean) as NavLink[];
+
   // Add any links not in the order
   DEFAULT_LINKS.forEach(link => {
     if (!orderedLinks.find(l => l.id === link.id)) {
@@ -88,82 +103,43 @@ const Navbar = () => {
     ...link,
     badge: link.id === "cart" ? cartItemsCount : undefined
   }));
-
   const handleLogout = async () => {
     await signOut();
   };
-
-  return (
-    <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
+  return <nav className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-gradient">Walker Family Shop</span>
+            <span className="font-bold text-gradient text-sm">Walker Family Shop</span>
           </Link>
 
           <div className="flex items-center gap-4">
-            {linksWithBadge.map((link) => {
-              const Icon = link.icon;
-              const isActive = location.pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                  }`}
-                >
+            {linksWithBadge.map(link => {
+            const Icon = link.icon;
+            const isActive = location.pathname === link.path;
+            return <Link key={link.path} to={link.path} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{link.label}</span>
-                  {link.badge !== undefined && link.badge > 0 && (
-                    <Badge variant="secondary" className="bg-accent text-accent-foreground">
+                  {link.badge !== undefined && link.badge > 0 && <Badge variant="secondary" className="bg-accent text-accent-foreground">
                       {link.badge}
-                    </Badge>
-                  )}
-                </Link>
-              );
-            })}
+                    </Badge>}
+                </Link>;
+          })}
 
             {/* Notification Bell */}
             <NotificationBell />
 
-            {user ? (
-              <>
-                {isAdmin && (
-                  <Link
-                    to="/admin"
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                      location.pathname === "/admin"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                    }`}
-                  >
+            {user ? <>
+                {isAdmin && <Link to="/admin" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/admin" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
                     <Settings className="w-5 h-5" />
                     <span className="font-medium">الإدارة</span>
-                  </Link>
-                )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
+                  </Link>}
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                   <LogOut className="w-4 h-4 ml-1" />
                   خروج
                 </Button>
-              </>
-            ) : shopUser ? (
-              <>
-                <Link
-                  to="/orders"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    location.pathname === "/orders"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                  }`}
-                >
+              </> : shopUser ? <>
+                <Link to="/orders" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/orders" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
                   <History className="w-5 h-5" />
                   <span className="font-medium">طلباتي</span>
                 </Link>
@@ -171,47 +147,23 @@ const Navbar = () => {
                   <UserCircle className="w-4 h-4" />
                   <span className="text-sm font-medium">{shopUser.discord_username}</span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleShopLogout}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
+                <Button variant="ghost" size="sm" onClick={handleShopLogout} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                   <LogOut className="w-4 h-4 ml-1" />
                   خروج
                 </Button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/auth"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    location.pathname === "/auth"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                  }`}
-                >
+              </> : <>
+                <Link to="/auth" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/auth" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
                   <LogIn className="w-5 h-5" />
                   <span className="font-medium">دخول</span>
                 </Link>
-                <Link
-                  to="/login"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    location.pathname === "/login"
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground/70 hover:text-foreground hover:bg-muted"
-                  }`}
-                >
+                <Link to="/login" className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${location.pathname === "/login" ? "bg-primary text-primary-foreground" : "text-foreground/70 hover:text-foreground hover:bg-muted"}`}>
                   <Settings className="w-5 h-5" />
                   <span className="font-medium">المالك</span>
                 </Link>
-              </>
-            )}
+              </>}
           </div>
         </div>
       </div>
-    </nav>
-  );
+    </nav>;
 };
-
 export default Navbar;
