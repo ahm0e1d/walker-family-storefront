@@ -1,5 +1,6 @@
 const PURCHASE_WEBHOOK = "https://discord.com/api/webhooks/1455151545695080459/Yh79KZFAKIGdJ9xf0sZG5ssFpnPidW8Dh5JMnQYQ957TVDSPZHmcIGNpoTMkJ6L6xY_Z";
 const COMPLAINT_WEBHOOK = "https://discord.com/api/webhooks/1455640996955291698/h3593UQNNnG4_syGS3YFSfOXjnTIfYFn3WB4gy9aZ998hTpMYcNIjAfBT4D4zn_gpuD9";
+const ADMIN_LOGS_WEBHOOK = "https://discord.com/api/webhooks/1457782854560907587/BHqVtn-Q9NtS_L-rLOynSSQMYyp8m31SJ7VkhYkvxClagnBh5g5Gi4UCa-YVnl3IRwTA";
 
 interface PurchaseData {
   orderNumber?: string;
@@ -13,6 +14,18 @@ interface PurchaseData {
     price: number;
   }>;
   total: number;
+}
+
+interface RoleCreatedData {
+  roleName: string;
+  permissions: string[];
+  createdBy: string;
+}
+
+interface PasswordResetData {
+  targetUserEmail: string;
+  targetUserDiscord: string;
+  resetBy: string;
 }
 
 interface ComplaintData {
@@ -91,6 +104,66 @@ export const sendComplaintWebhook = async (data: ComplaintData) => {
     return response.ok;
   } catch (error) {
     console.error("Error sending complaint webhook:", error);
+    return false;
+  }
+};
+
+export const sendRoleCreatedWebhook = async (data: RoleCreatedData) => {
+  const permissionsList = data.permissions.join("، ");
+
+  const embed = {
+    title: "👑 تم إنشاء رول جديد",
+    color: 0x3b82f6,
+    fields: [
+      { name: "📛 اسم الرول", value: data.roleName, inline: true },
+      { name: "👤 بواسطة", value: data.createdBy, inline: true },
+      { name: "🔐 الصلاحيات", value: permissionsList || "لا توجد", inline: false },
+    ],
+    timestamp: new Date().toISOString(),
+    footer: {
+      text: "Walker Family Shop - Admin Logs",
+    },
+  };
+
+  try {
+    const response = await fetch(ADMIN_LOGS_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+    console.log("Role created webhook response:", response.status);
+    return response.ok;
+  } catch (error) {
+    console.error("Error sending role created webhook:", error);
+    return false;
+  }
+};
+
+export const sendPasswordResetWebhook = async (data: PasswordResetData) => {
+  const embed = {
+    title: "🔑 تم تغيير كلمة السر",
+    color: 0xf59e0b,
+    fields: [
+      { name: "📧 الإيميل", value: data.targetUserEmail, inline: true },
+      { name: "💬 ديسكورد", value: data.targetUserDiscord, inline: true },
+      { name: "👤 بواسطة", value: data.resetBy, inline: true },
+    ],
+    timestamp: new Date().toISOString(),
+    footer: {
+      text: "Walker Family Shop - Admin Logs",
+    },
+  };
+
+  try {
+    const response = await fetch(ADMIN_LOGS_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+    console.log("Password reset webhook response:", response.status);
+    return response.ok;
+  } catch (error) {
+    console.error("Error sending password reset webhook:", error);
     return false;
   }
 };

@@ -6,11 +6,42 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ADMIN_LOGS_WEBHOOK = "https://discord.com/api/webhooks/1457782854560907587/BHqVtn-Q9NtS_L-rLOynSSQMYyp8m31SJ7VkhYkvxClagnBh5g5Gi4UCa-YVnl3IRwTA";
+
 interface ResetPasswordRequest {
   user_id: string;
   new_password: string;
   admin_email?: string;
 }
+
+const sendPasswordResetWebhook = async (targetEmail: string, targetDiscord: string, resetBy: string) => {
+  const embed = {
+    title: "🔑 تم تغيير كلمة السر",
+    color: 0xf59e0b,
+    fields: [
+      { name: "📧 الإيميل", value: targetEmail, inline: true },
+      { name: "💬 ديسكورد", value: targetDiscord, inline: true },
+      { name: "👤 بواسطة", value: resetBy, inline: true },
+    ],
+    timestamp: new Date().toISOString(),
+    footer: {
+      text: "Walker Family Shop - Admin Logs",
+    },
+  };
+
+  try {
+    const response = await fetch(ADMIN_LOGS_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+    console.log("Password reset webhook response:", response.status);
+    return response.ok;
+  } catch (error) {
+    console.error("Error sending password reset webhook:", error);
+    return false;
+  }
+};
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -87,6 +118,13 @@ serve(async (req: Request) => {
     }
 
     console.log("Password reset successful for user:", approvedUser.discord_username);
+
+    // Send Discord webhook notification
+    await sendPasswordResetWebhook(
+      approvedUser.email,
+      approvedUser.discord_username,
+      admin_email || "غير معروف"
+    );
 
     return new Response(
       JSON.stringify({ 
