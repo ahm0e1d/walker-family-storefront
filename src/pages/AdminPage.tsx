@@ -854,19 +854,25 @@ const AdminPage = () => {
         </div>
 
         <Tabs defaultValue={defaultTab} className="w-full">
-          <TabsList className={`grid w-full mb-8`} style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}>
-            {visibleTabs.map(tab => (
-              <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-                {tab.badge && tab.badge > 0 && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${tab.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="overflow-x-auto pb-2 mb-6 -mx-4 px-4">
+            <TabsList className="inline-flex w-max min-w-full gap-1 p-1">
+              {visibleTabs.map(tab => (
+                <TabsTrigger 
+                  key={tab.id} 
+                  value={tab.id} 
+                  className="flex items-center gap-1.5 px-3 py-2 whitespace-nowrap text-xs sm:text-sm"
+                >
+                  <tab.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.badge && tab.badge > 0 && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab.badgeVariant === 'destructive' ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'}`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value="products">
             <div className="flex justify-end mb-6">
