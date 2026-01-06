@@ -23,6 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { sendRoleCreatedWebhook } from "@/lib/webhooks";
 
 interface CustomRole {
   id: string;
@@ -181,6 +182,17 @@ const RolesTab = ({ adminEmail }: RolesTabProps) => {
             permissions: Array.isArray(data[0].permissions) ? data[0].permissions as string[] : []
           };
           setRoles(prev => [newRole, ...prev]);
+          
+          // Send Discord webhook
+          const permissionNames = selectedPermissions.map(p => {
+            const section = ADMIN_SECTIONS.find(s => s.id === p);
+            return section?.name || p;
+          });
+          sendRoleCreatedWebhook({
+            roleName,
+            permissions: permissionNames,
+            createdBy: adminEmail || "غير معروف"
+          });
         }
         
         toast({ title: "تم!", description: "تم إضافة الرول بنجاح" });
