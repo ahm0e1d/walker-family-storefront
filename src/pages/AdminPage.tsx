@@ -187,7 +187,6 @@ const AdminPage = () => {
         .from("pending_users")
         .select("*")
         .eq("status", "rejected")
-        .not("deactivation_reason", "is", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
