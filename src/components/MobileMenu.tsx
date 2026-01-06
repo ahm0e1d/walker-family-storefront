@@ -45,15 +45,15 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
           <Menu className="w-6 h-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] p-0">
+      <SheetContent side="right" className="w-[300px] p-0 overflow-y-auto">
         <SheetHeader className="p-4 border-b border-border">
-          <SheetTitle className="flex items-center gap-2">
-            <img src={logoAnimated} alt="Logo" className="w-8 h-8 rounded-md" />
-            <span className="text-gradient font-bold">Walker Family Shop</span>
+          <SheetTitle className="flex items-center gap-2 justify-end">
+            <span className="text-gradient font-bold text-sm truncate">Walker Family</span>
+            <img src={logoAnimated} alt="Logo" className="w-8 h-8 rounded-md flex-shrink-0" />
           </SheetTitle>
         </SheetHeader>
         
-        <nav className="flex flex-col p-4 gap-2">
+        <nav className="flex flex-col p-3 gap-1">
           {links.map((link) => {
             const Icon = link.icon;
             const isActive = location.pathname === link.path;
@@ -62,16 +62,16 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
                 key={link.path}
                 to={link.path}
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
                   isActive
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-secondary/10 text-muted-foreground"
                 }`}
               >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{link.label}</span>
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm truncate flex-1">{link.label}</span>
                 {link.badge !== undefined && link.badge > 0 && (
-                  <Badge variant="secondary" className="bg-accent text-accent-foreground mr-auto">
+                  <Badge variant="secondary" className="bg-accent text-accent-foreground text-xs px-2 py-0.5 flex-shrink-0">
                     {link.badge}
                   </Badge>
                 )}
@@ -79,7 +79,7 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
             );
           })}
 
-          <div className="h-px bg-border my-2" />
+          <div className="h-px bg-border my-1.5" />
 
           {user ? (
             <>
@@ -87,23 +87,23 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
                 <Link
                   to="/admin"
                   onClick={handleLinkClick}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
                     location.pathname === "/admin"
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-secondary/10 text-muted-foreground"
                   }`}
                 >
-                  <Settings className="w-5 h-5" />
-                  <span className="font-medium">{isAdmin ? "الإدارة" : "لوحة التحكم"}</span>
+                  <Settings className="w-5 h-5 flex-shrink-0" />
+                  <span className="font-medium text-sm">{isAdmin ? "الإدارة" : "لوحة التحكم"}</span>
                 </Link>
               )}
               <Button
                 variant="ghost"
                 onClick={() => { onLogout(); handleLinkClick(); }}
-                className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10 w-full px-3 py-2.5 h-auto"
               >
-                <LogOut className="w-5 h-5 ml-2" />
-                خروج
+                <LogOut className="w-5 h-5 ml-2 flex-shrink-0" />
+                <span className="text-sm">خروج</span>
               </Button>
             </>
           ) : shopUser ? (
@@ -111,26 +111,26 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
               <Link
                 to="/orders"
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
                   location.pathname === "/orders"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-secondary/10 text-muted-foreground"
                 }`}
               >
-                <History className="w-5 h-5" />
-                <span className="font-medium">طلباتي</span>
+                <History className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm">طلباتي</span>
               </Link>
-              <div className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-lg">
-                <UserCircle className="w-5 h-5" />
-                <span className="font-medium">{shopUser.discord_username}</span>
+              <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg">
+                <UserCircle className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm truncate">{shopUser.discord_username}</span>
               </div>
               <Button
                 variant="ghost"
                 onClick={() => { onShopLogout(); handleLinkClick(); }}
-                className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10 w-full px-3 py-2.5 h-auto"
               >
-                <LogOut className="w-5 h-5 ml-2" />
-                خروج
+                <LogOut className="w-5 h-5 ml-2 flex-shrink-0" />
+                <span className="text-sm">خروج</span>
               </Button>
             </>
           ) : (
@@ -138,26 +138,26 @@ const MobileMenu = ({ links, isAdmin, hasCustomRole, user, shopUser, onLogout, o
               <Link
                 to="/auth"
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
                   location.pathname === "/auth"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-secondary/10 text-muted-foreground"
                 }`}
               >
-                <LogIn className="w-5 h-5" />
-                <span className="font-medium">دخول</span>
+                <LogIn className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm">دخول</span>
               </Link>
               <Link
                 to="/login"
                 onClick={handleLinkClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-300 ${
                   location.pathname === "/login"
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-secondary/10 text-muted-foreground"
                 }`}
               >
-                <Settings className="w-5 h-5" />
-                <span className="font-medium">المالك</span>
+                <Settings className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium text-sm">المالك</span>
               </Link>
             </>
           )}

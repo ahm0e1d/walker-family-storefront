@@ -143,32 +143,51 @@ const RolesTab = ({ adminEmail }: RolesTabProps) => {
     setSaving(true);
     try {
       if (editingRole) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("custom_roles")
           .update({ 
             name: roleName, 
             permissions: selectedPermissions 
           })
-          .eq("id", editingRole.id);
+          .eq("id", editingRole.id)
+          .select();
         
         if (error) throw error;
+        
+        // Update local state immediately
+        setRoles(prev => prev.map(r => 
+          r.id === editingRole.id 
+            ? { ...r, name: roleName, permissions: selectedPermissions }
+            : r
+        ));
+        
         toast({ title: "تم!", description: "تم تحديث الرول بنجاح" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("custom_roles")
           .insert({ 
             name: roleName, 
             permissions: selectedPermissions,
             created_by: adminEmail 
-          });
+          })
+          .select();
         
         if (error) throw error;
+        
+        // Add new role to local state
+        if (data && data.length > 0) {
+          const newRole = {
+            ...data[0],
+            permissions: Array.isArray(data[0].permissions) ? data[0].permissions as string[] : []
+          };
+          setRoles(prev => [newRole, ...prev]);
+        }
+        
         toast({ title: "تم!", description: "تم إضافة الرول بنجاح" });
       }
 
       setIsDialogOpen(false);
       resetForm();
-      fetchData();
     } catch (error: any) {
       console.error("Error saving role:", error);
       toast({
