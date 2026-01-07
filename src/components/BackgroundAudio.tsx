@@ -47,8 +47,14 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
 
   // Try to play audio when component mounts
   useEffect(() => {
-    if (audioRef.current && audioUrl) {
-      const playPromise = audioRef.current.play();
+    const audio = audioRef.current;
+    
+    if (audio && audioUrl) {
+      // Stop any currently playing audio first
+      audio.pause();
+      audio.currentTime = 0;
+      
+      const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
@@ -62,6 +68,14 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
           });
       }
     }
+    
+    // Cleanup: stop audio when component unmounts or audioUrl changes
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
   }, [audioUrl]);
 
   const activateAudio = () => {
