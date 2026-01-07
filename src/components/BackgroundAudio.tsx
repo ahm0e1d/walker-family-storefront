@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 
@@ -6,23 +6,27 @@ interface BackgroundAudioProps {
   audioUrl: string;
 }
 
+// Singleton audio instance to prevent duplicates
+let globalAudio: HTMLAudioElement | null = null;
+let globalAudioUrl: string = "";
+
 const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [needsActivation, setNeedsActivation] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasInitialized = useRef(false);
+  const isInitializing = useRef(false);
 
-  const activateAudio = useCallback(() => {
-    if (audioRef.current && !isPlaying) {
-      audioRef.current.play().then(() => {
+  const activateAudio = () => {
+    if (globalAudio && !isPlaying) {
+      globalAudio.play().then(() => {
         setIsPlaying(true);
         setNeedsActivation(false);
       }).catch(console.error);
     }
-  }, [isPlaying]);
+  };
 
+  // Handle keyboard shortcut
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
@@ -37,8 +41,9 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [needsActivation, activateAudio]);
+  }, [needsActivation, isPlaying]);
 
+  // Hide hint after 10 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setShowHint(false);
@@ -46,23 +51,42 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle mute/unmute - just change the property, don't recreate audio
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = isMuted;
+    if (globalAudio) {
+      globalAudio.muted = isMuted;
     }
   }, [isMuted]);
 
-  // Create and manage audio element manually to prevent duplicates
+  // Initialize audio only once with singleton pattern
   useEffect(() => {
-    if (!audioUrl || hasInitialized.current) return;
+    if (!audioUrl) return;
     
-    hasInitialized.current = true;
+    // If same URL and audio exists, don't recreate
+    if (globalAudio && globalAudioUrl === audioUrl) {
+      // Sync state with existing audio
+      setIsPlaying(!globalAudio.paused);
+      setNeedsActivation(globalAudio.paused);
+      return;
+    }
     
-    // Create audio element programmatically
+    // Prevent double initialization
+    if (isInitializing.current) return;
+    isInitializing.current = true;
+    
+    // Clean up old audio if URL changed
+    if (globalAudio) {
+      globalAudio.pause();
+      globalAudio.src = "";
+      globalAudio = null;
+    }
+    
+    // Create new audio
+    globalAudioUrl = audioUrl;
     const audio = new Audio(audioUrl);
     audio.loop = true;
     audio.muted = isMuted;
-    audioRef.current = audio;
+    globalAudio = audio;
     
     const playPromise = audio.play();
     if (playPromise !== undefined) {
@@ -70,44 +94,38 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
         .then(() => {
           setIsPlaying(true);
           setNeedsActivation(false);
+          isInitializing.current = false;
         })
         .catch(() => {
           setNeedsActivation(true);
           setIsPlaying(false);
+          isInitializing.current = false;
         });
     }
     
-    // Cleanup: stop and remove audio when component unmounts
+    // Cleanup only on unmount, not on re-renders
     return () => {
-      if (audio) {
-        audio.pause();
-        audio.src = "";
-        audioRef.current = null;
-        hasInitialized.current = false;
-      }
+      // Don't cleanup on every re-render, only when component truly unmounts
+      // The singleton pattern handles this
     };
   }, [audioUrl]);
 
-  // Update audio src if URL changes
+  // Cleanup on actual unmount
   useEffect(() => {
-    if (audioRef.current && audioUrl && hasInitialized.current) {
-      const currentSrc = audioRef.current.src;
-      if (currentSrc !== audioUrl) {
-        audioRef.current.pause();
-        audioRef.current.src = audioUrl;
-        audioRef.current.load();
-        audioRef.current.play().catch(() => {
-          setNeedsActivation(true);
-        });
+    return () => {
+      if (globalAudio) {
+        globalAudio.pause();
+        globalAudio.src = "";
+        globalAudio = null;
+        globalAudioUrl = "";
       }
-    }
-  }, [audioUrl]);
+    };
+  }, []);
 
   if (!audioUrl) return null;
 
   return (
     <>
-
       {/* Mute Hint - Fixed at top */}
       <AnimatePresence>
         {showHint && (
@@ -134,7 +152,7 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
         )}
       </AnimatePresence>
 
-      {/* Floating Audio Control Button - Fixed at bottom right */}
+      {/* Floating Audio Control Button */}
       <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
