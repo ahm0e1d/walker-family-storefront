@@ -1054,44 +1054,48 @@ const AdminPage = () => {
 
             <div className="grid gap-4">
               {products.map((product) => (
-                <Card key={product.id} className="p-6 bg-card border-border">
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+                <Card key={product.id} className="p-4 md:p-6 bg-card border-border">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                       {product.image.startsWith('http') ? (
                         <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-3xl">{product.image}</span>
+                        <span className="text-2xl md:text-3xl">{product.image}</span>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
-                      <p className="text-muted-foreground text-sm">{product.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base md:text-lg font-bold text-foreground truncate">{product.name}</h3>
+                      <p className="text-muted-foreground text-xs md:text-sm truncate">{product.description}</p>
                     </div>
-                    <div className="text-center px-4">
-                      <p className="text-sm text-muted-foreground">السعر</p>
-                      <p className="font-bold text-accent">{formatPrice(product.price)}</p>
-                    </div>
-                    <div className="text-center px-4">
-                      <p className="text-sm text-muted-foreground">الكمية</p>
-                      <p className="font-bold text-foreground">{product.quantity}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleEdit(product)}
-                        className="border-border hover:bg-primary hover:text-primary-foreground"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDelete(product.id)}
-                        className="border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center justify-between w-full sm:w-auto gap-4 mt-2 sm:mt-0">
+                      <div className="flex gap-4">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">السعر</p>
+                          <p className="font-bold text-accent text-sm md:text-base">{formatPrice(product.price)}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">الكمية</p>
+                          <p className="font-bold text-foreground text-sm md:text-base">{product.quantity}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEdit(product)}
+                          className="h-8 w-8 md:h-10 md:w-10 border-border hover:bg-primary hover:text-primary-foreground"
+                        >
+                          <Edit2 className="w-3 h-3 md:w-4 md:h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDelete(product.id)}
+                          className="h-8 w-8 md:h-10 md:w-10 border-border text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        >
+                          <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </Card>

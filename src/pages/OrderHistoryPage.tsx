@@ -22,6 +22,7 @@ interface Order {
   total: number;
   status: string;
   created_at: string;
+  rejection_reason?: string;
 }
 
 const OrderHistoryPage = () => {
@@ -90,11 +91,25 @@ const OrderHistoryPage = () => {
             قيد الانتظار
           </Badge>
         );
+      case "accepted":
+        return (
+          <Badge variant="secondary" className="bg-blue-500/20 text-blue-500">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            تم الاستلام
+          </Badge>
+        );
       case "completed":
         return (
           <Badge variant="secondary" className="bg-green-500/20 text-green-500">
             <CheckCircle className="w-3 h-3 mr-1" />
             مكتمل
+          </Badge>
+        );
+      case "rejected":
+        return (
+          <Badge variant="secondary" className="bg-red-500/20 text-red-500">
+            <XCircle className="w-3 h-3 mr-1" />
+            مرفوض
           </Badge>
         );
       case "cancelled":
@@ -172,6 +187,14 @@ const OrderHistoryPage = () => {
                   <p className="font-medium">{order.game_id}</p>
                 </div>
               </div>
+
+              {/* Rejection Reason */}
+              {order.status === "rejected" && order.rejection_reason && (
+                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 mb-4">
+                  <p className="text-sm font-medium text-red-500 mb-1">سبب الرفض:</p>
+                  <p className="text-sm text-foreground">{order.rejection_reason}</p>
+                </div>
+              )}
 
               <div className="border-t border-border pt-4">
                 <h4 className="font-medium mb-2">المنتجات:</h4>

@@ -164,107 +164,109 @@ const CartPage = () => {
         <h1 className="text-4xl font-bold text-foreground mb-8 text-center">سلة التسوق</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
+          {/* Cart Items - Hidden on mobile when there are items */}
           <div className="lg:col-span-2 space-y-4">
             {cart.map((item) => (
-              <Card key={item.id} className="p-6 bg-card border-border">
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center overflow-hidden">
+              <Card key={item.id} className="p-4 md:p-6 bg-card border-border">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
                     {item.image.startsWith('http') ? (
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-4xl">{item.image}</span>
+                      <span className="text-3xl md:text-4xl">{item.image}</span>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold text-foreground">{item.name}</h3>
-                    <p className="text-accent font-semibold">{formatPrice(item.price)}</p>
+                  <div className="flex-1 min-w-0 w-full">
+                    <h3 className="text-base md:text-lg font-bold text-foreground truncate">{item.name}</h3>
+                    <p className="text-accent font-semibold text-sm md:text-base">{formatPrice(item.price)}</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateCartQuantity(item.id, item.cartQuantity - 1)}
-                      className="border-border"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                    <span className="w-10 text-center font-semibold">{item.cartQuantity}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateCartQuantity(item.id, item.cartQuantity + 1)}
-                      className="border-border"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="text-left w-24">
-                    <p className="font-bold text-foreground">
+                  <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-border"
+                        onClick={() => updateCartQuantity(item.id, item.cartQuantity - 1)}
+                      >
+                        <Minus className="w-3 h-3" />
+                      </Button>
+                      <span className="w-8 text-center font-semibold text-sm">{item.cartQuantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 border-border"
+                        onClick={() => updateCartQuantity(item.id, item.cartQuantity + 1)}
+                      >
+                        <Plus className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    <p className="font-bold text-foreground text-sm md:text-base">
                       {formatPrice(item.price * item.cartQuantity)}
                     </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => removeFromCart(item.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
                 </div>
               </Card>
             ))}
           </div>
 
+          {/* Checkout Form */}
           <div>
-            <Card className="p-6 bg-card border-border sticky top-24">
-              <h2 className="text-2xl font-bold text-foreground mb-6">إتمام الشراء</h2>
+            <Card className="p-4 md:p-6 bg-card border-border sticky top-24">
+              <h2 className="text-xl md:text-2xl font-bold text-foreground mb-4 md:mb-6">إتمام الشراء</h2>
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 md:space-y-4 mb-4 md:mb-6">
                 <div>
-                  <Label htmlFor="accountName">اسم الحساب</Label>
+                  <Label htmlFor="accountName" className="text-sm">اسم الحساب</Label>
                   <Input
                     id="accountName"
                     value={accountName}
                     onChange={(e) => setAccountName(e.target.value)}
                     placeholder="أدخل اسم الحساب"
-                    className="bg-input border-border"
+                    className="bg-input border-border h-10"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="characterName">اسم الشخصية</Label>
+                  <Label htmlFor="characterName" className="text-sm">اسم الشخصية</Label>
                   <Input
                     id="characterName"
                     value={characterName}
                     onChange={(e) => setCharacterName(e.target.value)}
                     placeholder="أدخل اسم الشخصية"
-                    className="bg-input border-border"
+                    className="bg-input border-border h-10"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="discordUsername">يوزر الديسكورد</Label>
+                  <Label htmlFor="discordUsername" className="text-sm">يوزر الديسكورد</Label>
                   <Input
                     id="discordUsername"
                     value={discordUsername}
                     onChange={(e) => setDiscordUsername(e.target.value)}
                     placeholder="أدخل يوزر الديسكورد"
-                    className="bg-input border-border"
+                    className="bg-input border-border h-10"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="orderId">الايدي</Label>
+                  <Label htmlFor="orderId" className="text-sm">الايدي</Label>
                   <Input
                     id="orderId"
                     value={orderId}
                     onChange={(e) => setOrderId(e.target.value)}
                     placeholder="أدخل الايدي"
-                    className="bg-input border-border"
+                    className="bg-input border-border h-10"
                   />
                 </div>
               </div>
 
-              <div className="border-t border-border pt-4 mb-6">
-                <div className="flex justify-between text-lg font-bold">
+              <div className="border-t border-border pt-4 mb-4 md:mb-6">
+                <div className="flex justify-between text-base md:text-lg font-bold">
                   <span>المجموع الكلي</span>
                   <span className="text-accent">{formatPrice(cartTotal)}</span>
                 </div>
@@ -273,7 +275,7 @@ const CartPage = () => {
               <Button
                 onClick={handleCheckout}
                 disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-6 text-lg"
+                className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-semibold py-4 md:py-6 text-base md:text-lg"
               >
                 {isSubmitting ? "جاري الإرسال..." : "إتمام الشراء"}
               </Button>
