@@ -8,7 +8,7 @@ import { ShopProvider } from "@/context/ShopContext";
 import { AuthProvider } from "@/context/AuthContext";
 import useTheme from "@/hooks/useTheme";
 import Navbar from "@/components/Navbar";
-import BackgroundVideo from "@/components/BackgroundVideo";
+import BackgroundAudio from "@/components/BackgroundAudio";
 import HomePage from "@/pages/HomePage";
 import ProductsPage from "@/pages/ProductsPage";
 import CartPage from "@/pages/CartPage";
@@ -30,21 +30,21 @@ const ThemeInitializer = () => {
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [videoUrl, setVideoUrl] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
 
   useEffect(() => {
-    const fetchVideoUrl = async () => {
+    const fetchAudioUrl = async () => {
       const { data } = await supabase
         .from("site_settings")
         .select("value")
-        .eq("key", "video_url")
+        .eq("key", "audio_url")
         .single();
       
       if (data && typeof data.value === "string" && data.value) {
-        setVideoUrl(data.value);
+        setAudioUrl(data.value);
       }
     };
-    fetchVideoUrl();
+    fetchAudioUrl();
   }, []);
 
   return (
@@ -70,8 +70,8 @@ const App = () => {
                 <Route path="/rules" element={<RulesPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              {/* Global Background Video */}
-              <BackgroundVideo videoUrl={videoUrl} />
+              {/* Global Background Audio */}
+              <BackgroundAudio audioUrl={audioUrl} />
             </BrowserRouter>
           </ShopProvider>
         </AuthProvider>
