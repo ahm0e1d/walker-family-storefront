@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle } from "lucide-react";
+import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
 
 interface NavItem {
@@ -32,6 +33,15 @@ const TRANSITIONS = [
   { id: "rotate", name: "دوران", description: "دوران مع ظهور" },
 ];
 
+const THEME_COLORS = [
+  { id: "red", name: "أحمر", primary: "0 72% 50%", accent: "45 100% 50%" },
+  { id: "blue", name: "أزرق", primary: "220 70% 50%", accent: "180 100% 50%" },
+  { id: "green", name: "أخضر", primary: "140 70% 40%", accent: "60 100% 50%" },
+  { id: "purple", name: "بنفسجي", primary: "270 70% 50%", accent: "300 100% 60%" },
+  { id: "orange", name: "برتقالي", primary: "25 90% 50%", accent: "45 100% 50%" },
+  { id: "teal", name: "تركوازي", primary: "175 70% 40%", accent: "200 100% 50%" },
+];
+
 interface SiteAppearanceTabProps {
   adminEmail?: string;
 }
@@ -41,6 +51,11 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const [transitionType, setTransitionType] = useState("slide");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [shopName, setShopName] = useState("Walker Family Shop");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [themeColor, setThemeColor] = useState("red");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,12 +78,58 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           if (setting.key === "transition_type" && typeof setting.value === "string") {
             setTransitionType(setting.value);
           }
+          if (setting.key === "shop_name" && typeof setting.value === "string") {
+            setShopName(setting.value);
+          }
+          if (setting.key === "logo_url" && typeof setting.value === "string") {
+            setLogoUrl(setting.value);
+          }
+          if (setting.key === "theme_color" && typeof setting.value === "string") {
+            setThemeColor(setting.value);
+          }
         });
       }
     } catch (error) {
       console.error("Error fetching settings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const filePath = `site/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setLogoUrl(urlData.publicUrl);
+      toast({
+        title: "تم رفع الشعار",
+        description: "تم رفع الشعار بنجاح. لا تنس حفظ الإعدادات."
+      });
+    } catch (error) {
+      console.error("Error uploading logo:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل في رفع الشعار",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -91,6 +152,36 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           action: "update", 
           key: "transition_type", 
           value: transitionType,
+          admin_email: adminEmail
+        }
+      });
+
+      // Save shop name
+      await supabase.functions.invoke("manage-site-settings", {
+        body: { 
+          action: "update", 
+          key: "shop_name", 
+          value: shopName,
+          admin_email: adminEmail
+        }
+      });
+
+      // Save logo URL
+      await supabase.functions.invoke("manage-site-settings", {
+        body: { 
+          action: "update", 
+          key: "logo_url", 
+          value: logoUrl,
+          admin_email: adminEmail
+        }
+      });
+
+      // Save theme color
+      await supabase.functions.invoke("manage-site-settings", {
+        body: { 
+          action: "update", 
+          key: "theme_color", 
+          value: themeColor,
           admin_email: adminEmail
         }
       });
@@ -125,6 +216,114 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Shop Branding */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Type className="w-5 h-5" />
+            هوية المتجر
+          </CardTitle>
+          <CardDescription>
+            تعديل اسم المتجر والشعار
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>اسم المتجر</Label>
+            <Input 
+              value={shopName} 
+              onChange={(e) => setShopName(e.target.value)}
+              placeholder="أدخل اسم المتجر"
+              className="bg-input border-border"
+            />
+          </div>
+          <div>
+            <Label>شعار المتجر</Label>
+            <div className="flex items-center gap-4 mt-2">
+              {logoUrl && (
+                <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full"
+                >
+                  {uploadingLogo ? (
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                  ) : (
+                    <Image className="w-4 h-4 ml-2" />
+                  )}
+                  {logoUrl ? "تغيير الشعار" : "رفع شعار"}
+                </Button>
+              </div>
+            </div>
+            {logoUrl && (
+              <Input 
+                value={logoUrl} 
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="أو أدخل رابط الشعار"
+                className="bg-input border-border mt-2"
+              />
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Theme Colors */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Paintbrush className="w-5 h-5" />
+            ثيم المتجر
+          </CardTitle>
+          <CardDescription>
+            اختر لون الثيم الرئيسي للمتجر
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {THEME_COLORS.map((color) => (
+              <button
+                key={color.id}
+                onClick={() => setThemeColor(color.id)}
+                className={`relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
+                  themeColor === color.id 
+                    ? "border-primary bg-primary/10" 
+                    : "border-border hover:border-primary/50"
+                }`}
+              >
+                <div 
+                  className="w-10 h-10 rounded-full"
+                  style={{ backgroundColor: `hsl(${color.primary})` }}
+                />
+                <span className="text-xs font-medium">{color.name}</span>
+                {themeColor === color.id && (
+                  <motion.div
+                    layoutId="theme-indicator"
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            * تغيير الثيم يتطلب تحديث ملف CSS يدوياً في الوقت الحالي
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Navbar Order */}
       <Card>
         <CardHeader>
