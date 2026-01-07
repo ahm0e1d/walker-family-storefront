@@ -30,23 +30,6 @@ const ThemeInitializer = () => {
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [audioUrl, setAudioUrl] = useState("");
-
-  useEffect(() => {
-    const fetchAudioUrl = async () => {
-      const { data } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "audio_url")
-        .single();
-      
-      if (data && typeof data.value === "string" && data.value) {
-        setAudioUrl(data.value);
-      }
-    };
-    fetchAudioUrl();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -55,6 +38,8 @@ const App = () => {
             <ThemeInitializer />
             <Toaster />
             <Sonner />
+            {/* Background Audio - Outside Router to prevent remounting */}
+            <BackgroundAudio />
             <BrowserRouter>
               <Navbar />
               <Routes>
@@ -70,8 +55,6 @@ const App = () => {
                 <Route path="/rules" element={<RulesPage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              {/* Global Background Audio */}
-              <BackgroundAudio audioUrl={audioUrl} />
             </BrowserRouter>
           </ShopProvider>
         </AuthProvider>
