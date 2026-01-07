@@ -3,6 +3,7 @@ import { motion, useScroll, AnimatePresence } from "framer-motion";
 import { Loader2, Users, ShoppingBag, UserPlus, ChevronDown, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
+import BackgroundVideo from "@/components/BackgroundVideo";
 import { useShop } from "@/context/ShopContext";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const HomePage = () => {
   const [discordUsername, setDiscordUsername] = useState("");
   const [registerLoading, setRegisterLoading] = useState(false);
   const [isLoggedInUser, setIsLoggedInUser] = useState(false);
+  const [videoUrl, setVideoUrl] = useState("");
   const {
     toast
   } = useToast();
@@ -44,6 +46,22 @@ const HomePage = () => {
       setIsLoggedInUser(false);
     }
   }, [isAdmin]);
+
+  // Fetch video URL from settings
+  useEffect(() => {
+    const fetchVideoUrl = async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "video_url")
+        .single();
+      
+      if (data && typeof data.value === "string" && data.value) {
+        setVideoUrl(data.value);
+      }
+    };
+    fetchVideoUrl();
+  }, []);
 
   // Determine if registration section should be shown
   const showRegistration = !isLoggedInUser || isAdmin;
@@ -531,6 +549,9 @@ const HomePage = () => {
             </div>}
         </div>
       </section>
+
+      {/* Background Video Section */}
+      {videoUrl && <BackgroundVideo videoUrl={videoUrl} />}
     </div>;
 };
 export default HomePage;

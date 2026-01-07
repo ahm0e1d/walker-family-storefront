@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ShopProvider } from "@/context/ShopContext";
 import { AuthProvider } from "@/context/AuthContext";
+import useTheme from "@/hooks/useTheme";
 import Navbar from "@/components/Navbar";
 import HomePage from "@/pages/HomePage";
 import ProductsPage from "@/pages/ProductsPage";
@@ -18,6 +20,11 @@ import OrderHistoryPage from "@/pages/OrderHistoryPage";
 import RulesPage from "@/pages/RulesPage";
 import NotFound from "@/pages/NotFound";
 
+const ThemeInitializer = () => {
+  useTheme();
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -25,6 +32,7 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <ShopProvider>
+          <ThemeInitializer />
           <Toaster />
           <Sonner />
           <BrowserRouter>
