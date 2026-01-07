@@ -12,8 +12,8 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
   const isVimeo = videoUrl?.includes("vimeo.com");
   const isEmbed = isYouTube || isVimeo;
 
-  // For YouTube/Vimeo, must start muted for autoplay to work (browser policy)
-  const [isMuted, setIsMuted] = useState(isEmbed ? true : false);
+  // Always start with sound ON
+  const [isMuted, setIsMuted] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [embedKey, setEmbedKey] = useState(0); // Key to force iframe reload
