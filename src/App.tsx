@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { ShopProvider } from "@/context/ShopContext";
 import { AuthProvider } from "@/context/AuthContext";
 import useTheme from "@/hooks/useTheme";
 import Navbar from "@/components/Navbar";
+import BackgroundVideo from "@/components/BackgroundVideo";
 import HomePage from "@/pages/HomePage";
 import ProductsPage from "@/pages/ProductsPage";
 import CartPage from "@/pages/CartPage";
@@ -19,6 +20,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import OrderHistoryPage from "@/pages/OrderHistoryPage";
 import RulesPage from "@/pages/RulesPage";
 import NotFound from "@/pages/NotFound";
+import { supabase } from "@/integrations/supabase/client";
 
 const ThemeInitializer = () => {
   useTheme();
@@ -27,34 +29,55 @@ const ThemeInitializer = () => {
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <ShopProvider>
-          <ThemeInitializer />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/products" element={<ProductsPage />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/contact" element={<ContactPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/orders" element={<OrderHistoryPage />} />
-              <Route path="/rules" element={<RulesPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </ShopProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [videoUrl, setVideoUrl] = useState("");
+
+  useEffect(() => {
+    const fetchVideoUrl = async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "video_url")
+        .single();
+      
+      if (data && typeof data.value === "string" && data.value) {
+        setVideoUrl(data.value);
+      }
+    };
+    fetchVideoUrl();
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <ShopProvider>
+            <ThemeInitializer />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Navbar />
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/cart" element={<CartPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/orders" element={<OrderHistoryPage />} />
+                <Route path="/rules" element={<RulesPage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              {/* Global Background Video */}
+              <BackgroundVideo videoUrl={videoUrl} />
+            </BrowserRouter>
+          </ShopProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
