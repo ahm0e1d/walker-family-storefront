@@ -102,8 +102,14 @@ const AdminPage = () => {
 
   // Orders state
   const [orders, setOrders] = useState<Order[]>([]);
+  const [acceptedOrders, setAcceptedOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
-  const [completingOrder, setCompletingOrder] = useState<string | null>(null);
+  const [orderActionLoading, setOrderActionLoading] = useState<string | null>(null);
+  
+  // Order rejection dialog
+  const [isRejectOrderDialogOpen, setIsRejectOrderDialogOpen] = useState(false);
+  const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
+  const [rejectOrderReason, setRejectOrderReason] = useState("");
 
   // Approved users state
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
@@ -308,20 +314,35 @@ const AdminPage = () => {
   const fetchOrders = async () => {
     setOrdersLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch pending orders
+      const { data: pendingData, error: pendingError } = await supabase
         .from("orders")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (pendingError) throw pendingError;
       
-      const transformedOrders = (data || []).map(order => ({
+      const transformedPending = (pendingData || []).map(order => ({
         ...order,
         items: order.items as unknown as OrderItem[]
       }));
+      setOrders(transformedPending);
+
+      // Fetch accepted orders
+      const { data: acceptedData, error: acceptedError } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("status", "accepted")
+        .order("created_at", { ascending: false });
+
+      if (acceptedError) throw acceptedError;
       
-      setOrders(transformedOrders);
+      const transformedAccepted = (acceptedData || []).map(order => ({
+        ...order,
+        items: order.items as unknown as OrderItem[]
+      }));
+      setAcceptedOrders(transformedAccepted);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
@@ -329,11 +350,19 @@ const AdminPage = () => {
     }
   };
 
-  const handleCompleteOrder = async (orderId: string) => {
-    setCompletingOrder(orderId);
+  const handleOrderAction = async (orderId: string, action: "accept" | "complete" | "reject", rejectionReason?: string) => {
+    setOrderActionLoading(orderId);
     try {
+      const currentAdminUser = approvedUsers.find(u => u.id === user?.id);
+      
       const { data, error } = await supabase.functions.invoke("complete-order", {
-        body: { order_id: orderId },
+        body: { 
+          order_id: orderId, 
+          action,
+          admin_email: user?.email,
+          admin_discord: currentAdminUser?.discord_username,
+          rejection_reason: rejectionReason
+        },
       });
 
       if (error) throw error;
@@ -347,22 +376,50 @@ const AdminPage = () => {
         return;
       }
 
+      const messages = {
+        accept: "تم استلام الطلب بنجاح",
+        complete: "تم تسليم الطلب بنجاح",
+        reject: "تم رفض الطلب"
+      };
+
       toast({
         title: "تم!",
-        description: "تم تسليم الطلب بنجاح",
+        description: messages[action],
       });
 
-      setOrders(prev => prev.filter(o => o.id !== orderId));
+      if (action === "accept") {
+        // Move from pending to accepted
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+          setOrders(prev => prev.filter(o => o.id !== orderId));
+          setAcceptedOrders(prev => [{ ...order, status: "accepted" }, ...prev]);
+        }
+      } else if (action === "complete") {
+        // Remove from accepted
+        setAcceptedOrders(prev => prev.filter(o => o.id !== orderId));
+      } else if (action === "reject") {
+        // Remove from pending
+        setOrders(prev => prev.filter(o => o.id !== orderId));
+        setIsRejectOrderDialogOpen(false);
+        setRejectOrderId(null);
+        setRejectOrderReason("");
+      }
     } catch (error) {
-      console.error("Error completing order:", error);
+      console.error("Error with order action:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء تسليم الطلب",
+        description: "حدث خطأ أثناء تنفيذ العملية",
         variant: "destructive",
       });
     } finally {
-      setCompletingOrder(null);
+      setOrderActionLoading(null);
     }
+  };
+
+  const openRejectOrderDialog = (orderId: string) => {
+    setRejectOrderId(orderId);
+    setRejectOrderReason("");
+    setIsRejectOrderDialogOpen(true);
   };
 
   const handleUserAction = async (userId: string, action: "approve" | "reject") => {
@@ -1054,87 +1111,237 @@ const AdminPage = () => {
               <div className="flex justify-center py-20">
                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
               </div>
-            ) : orders.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center text-muted-foreground">
-                  <ShoppingBag className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  لا توجد طلبات معلقة
-                </CardContent>
-              </Card>
             ) : (
-              <div className="space-y-4">
-                {orders.map((order) => (
-                  <Card key={order.id}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge variant="secondary" className="bg-primary/20 text-primary">
-                            {order.order_number}
-                          </Badge>
-                          <span className="text-muted-foreground text-sm font-normal">
-                            {order.discord_username}
-                          </span>
-                        </div>
-                        <span className="text-sm text-muted-foreground font-normal">
-                          {new Date(order.created_at).toLocaleDateString("ar-SA")}
-                        </span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">اسم الحساب:</span>
-                          <p className="font-medium">{order.account_name}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">اسم الشخصية:</span>
-                          <p className="font-medium">{order.character_name}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">الديسكورد:</span>
-                          <p className="font-medium">{order.discord_username}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">الايدي:</span>
-                          <p className="font-medium">{order.game_id}</p>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-border pt-3 mb-4">
-                        <h4 className="font-medium mb-2 text-sm">المنتجات:</h4>
-                        <div className="space-y-1">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="flex justify-between text-sm">
-                              <span>
-                                {item.name} × {item.quantity}
+              <div className="space-y-6">
+                {/* Pending Orders Section */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5" />
+                    الطلبات المعلقة ({orders.length})
+                  </h3>
+                  {orders.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-8 text-center text-muted-foreground">
+                        لا توجد طلبات معلقة
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <Card key={order.id}>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="bg-primary/20 text-primary">
+                                  {order.order_number}
+                                </Badge>
+                                <span className="text-muted-foreground text-sm font-normal">
+                                  {order.discord_username}
+                                </span>
+                              </div>
+                              <span className="text-sm text-muted-foreground font-normal">
+                                {new Date(order.created_at).toLocaleDateString("ar-SA")}
                               </span>
-                              <span className="text-accent">{item.price.toLocaleString()}</span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">اسم الحساب:</span>
+                                <p className="font-medium">{order.account_name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">اسم الشخصية:</span>
+                                <p className="font-medium">{order.character_name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">الديسكورد:</span>
+                                <p className="font-medium">{order.discord_username}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">الايدي:</span>
+                                <p className="font-medium">{order.game_id}</p>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                        <div className="flex justify-between font-bold mt-2 pt-2 border-t border-border">
-                          <span>المجموع</span>
-                          <span className="text-accent">{order.total.toLocaleString()}</span>
-                        </div>
-                      </div>
 
-                      <Button
-                        onClick={() => handleCompleteOrder(order.id)}
-                        disabled={completingOrder === order.id}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        {completingOrder === order.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                        ) : (
-                          <CheckCircle className="w-4 h-4 ml-2" />
-                        )}
-                        تم التسليم
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+                            <div className="border-t border-border pt-3 mb-4">
+                              <h4 className="font-medium mb-2 text-sm">المنتجات:</h4>
+                              <div className="space-y-1">
+                                {order.items.map((item, index) => (
+                                  <div key={index} className="flex justify-between text-sm">
+                                    <span>
+                                      {item.name} × {item.quantity}
+                                    </span>
+                                    <span className="text-accent">{item.price.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex justify-between font-bold mt-2 pt-2 border-t border-border">
+                                <span>المجموع</span>
+                                <span className="text-accent">{order.total.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => handleOrderAction(order.id, "accept")}
+                                disabled={orderActionLoading === order.id}
+                                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                              >
+                                {orderActionLoading === order.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                                ) : (
+                                  <Check className="w-4 h-4 ml-2" />
+                                )}
+                                استلام الطلب
+                              </Button>
+                              <Button
+                                onClick={() => openRejectOrderDialog(order.id)}
+                                disabled={orderActionLoading === order.id}
+                                variant="destructive"
+                                className="flex-1"
+                              >
+                                <X className="w-4 h-4 ml-2" />
+                                رفض الطلب
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Accepted Orders Section */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-blue-500" />
+                    الطلبات قيد التجهيز ({acceptedOrders.length})
+                  </h3>
+                  {acceptedOrders.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-8 text-center text-muted-foreground">
+                        لا توجد طلبات قيد التجهيز
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {acceptedOrders.map((order) => (
+                        <Card key={order.id} className="border-blue-500/30 bg-blue-500/5">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge className="bg-blue-600 text-white">
+                                  {order.order_number}
+                                </Badge>
+                                <Badge variant="outline" className="text-blue-500 border-blue-500">
+                                  قيد التجهيز
+                                </Badge>
+                                <span className="text-muted-foreground text-sm font-normal">
+                                  {order.discord_username}
+                                </span>
+                              </div>
+                              <span className="text-sm text-muted-foreground font-normal">
+                                {new Date(order.created_at).toLocaleDateString("ar-SA")}
+                              </span>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                              <div>
+                                <span className="text-muted-foreground">اسم الحساب:</span>
+                                <p className="font-medium">{order.account_name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">اسم الشخصية:</span>
+                                <p className="font-medium">{order.character_name}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">الديسكورد:</span>
+                                <p className="font-medium">{order.discord_username}</p>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">الايدي:</span>
+                                <p className="font-medium">{order.game_id}</p>
+                              </div>
+                            </div>
+
+                            <div className="border-t border-border pt-3 mb-4">
+                              <h4 className="font-medium mb-2 text-sm">المنتجات:</h4>
+                              <div className="space-y-1">
+                                {order.items.map((item, index) => (
+                                  <div key={index} className="flex justify-between text-sm">
+                                    <span>
+                                      {item.name} × {item.quantity}
+                                    </span>
+                                    <span className="text-accent">{item.price.toLocaleString()}</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="flex justify-between font-bold mt-2 pt-2 border-t border-border">
+                                <span>المجموع</span>
+                                <span className="text-accent">{order.total.toLocaleString()}</span>
+                              </div>
+                            </div>
+
+                            <Button
+                              onClick={() => handleOrderAction(order.id, "complete")}
+                              disabled={orderActionLoading === order.id}
+                              className="w-full bg-green-600 hover:bg-green-700"
+                            >
+                              {orderActionLoading === order.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                              ) : (
+                                <CheckCircle className="w-4 h-4 ml-2" />
+                              )}
+                              تم التسليم
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+
+            {/* Order Rejection Dialog */}
+            <Dialog open={isRejectOrderDialogOpen} onOpenChange={(open) => {
+              setIsRejectOrderDialogOpen(open);
+              if (!open) {
+                setRejectOrderId(null);
+                setRejectOrderReason("");
+              }
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>سبب رفض الطلب</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 mt-4">
+                  <div>
+                    <Label>السبب</Label>
+                    <Input
+                      value={rejectOrderReason}
+                      onChange={(e) => setRejectOrderReason(e.target.value)}
+                      placeholder="أدخل سبب رفض الطلب"
+                    />
+                  </div>
+                  <Button 
+                    onClick={() => rejectOrderId && handleOrderAction(rejectOrderId, "reject", rejectOrderReason)} 
+                    disabled={orderActionLoading !== null || !rejectOrderReason.trim()} 
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    {orderActionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                    ) : (
+                      <X className="w-4 h-4 ml-2" />
+                    )}
+                    تأكيد رفض الطلب
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="users">

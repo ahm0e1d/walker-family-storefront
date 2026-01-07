@@ -129,13 +129,14 @@ serve(async (req: Request) => {
       );
 
     } else if (action === "reject") {
-      // Update pending user status to rejected
+      // Just delete the pending user - don't move to blacklist
+      // Only deactivation from approved users goes to blacklist
       await supabase
         .from("pending_users")
-        .update({ status: "rejected" })
+        .delete()
         .eq("id", pending_user_id);
 
-      console.log("User rejected:", pendingUser.discord_username);
+      console.log("User rejected and removed:", pendingUser.discord_username);
 
       // Send Discord notification for rejection
       const rejectEmbed = {
