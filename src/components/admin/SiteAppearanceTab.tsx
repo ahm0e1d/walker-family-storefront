@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush, Video } from "lucide-react";
+import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush, Music } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
 
 interface NavItem {
@@ -54,11 +54,11 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const [shopName, setShopName] = useState("Walker Family Shop");
   const [logoUrl, setLogoUrl] = useState("");
   const [themeColor, setThemeColor] = useState("red");
-  const [videoUrl, setVideoUrl] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,8 +90,8 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           if (setting.key === "theme_color" && typeof setting.value === "string") {
             setThemeColor(setting.value);
           }
-          if (setting.key === "video_url" && typeof setting.value === "string") {
-            setVideoUrl(setting.value);
+          if (setting.key === "audio_url" && typeof setting.value === "string") {
+            setAudioUrl(setting.value);
           }
         });
       }
@@ -139,14 +139,14 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
     }
   };
 
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadingVideo(true);
+    setUploadingAudio(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `video-${Date.now()}.${fileExt}`;
+      const fileName = `audio-${Date.now()}.${fileExt}`;
       const filePath = `site/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -159,20 +159,20 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
         .from('product-images')
         .getPublicUrl(filePath);
 
-      setVideoUrl(urlData.publicUrl);
+      setAudioUrl(urlData.publicUrl);
       toast({
-        title: "تم رفع الفيديو",
-        description: "تم رفع الفيديو بنجاح. لا تنس حفظ الإعدادات."
+        title: "تم رفع الصوت",
+        description: "تم رفع الملف الصوتي بنجاح. لا تنس حفظ الإعدادات."
       });
     } catch (error) {
-      console.error("Error uploading video:", error);
+      console.error("Error uploading audio:", error);
       toast({
         title: "خطأ",
-        description: "فشل في رفع الفيديو",
+        description: "فشل في رفع الملف الصوتي",
         variant: "destructive"
       });
     } finally {
-      setUploadingVideo(false);
+      setUploadingAudio(false);
     }
   };
 
@@ -229,12 +229,12 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
         }
       });
 
-      // Save video URL
+      // Save audio URL
       await supabase.functions.invoke("manage-site-settings", {
         body: { 
           action: "update", 
-          key: "video_url", 
-          value: videoUrl,
+          key: "audio_url", 
+          value: audioUrl,
           admin_email: adminEmail
         }
       });
@@ -377,68 +377,69 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Background Video */}
+      {/* Background Audio */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Video className="w-5 h-5" />
-            فيديو الخلفية
+            <Music className="w-5 h-5" />
+            الصوت الخلفي
           </CardTitle>
           <CardDescription>
-            رفع فيديو يظهر في أسفل الصفحة الرئيسية
+            رفع ملف صوتي يشتغل في خلفية الموقع
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
-            {videoUrl && (
-              <div className="w-32 h-20 rounded-lg overflow-hidden bg-muted">
-                <video src={videoUrl} className="w-full h-full object-cover" muted />
+            {audioUrl && (
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                <Music className="w-8 h-8 text-primary" />
               </div>
             )}
             <div className="flex-1">
               <input
                 type="file"
-                ref={videoInputRef}
-                onChange={handleVideoUpload}
-                accept="video/*"
+                ref={audioInputRef}
+                onChange={handleAudioUpload}
+                accept="audio/*,video/*"
                 className="hidden"
               />
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => videoInputRef.current?.click()}
-                disabled={uploadingVideo}
+                onClick={() => audioInputRef.current?.click()}
+                disabled={uploadingAudio}
                 className="w-full"
               >
-                {uploadingVideo ? (
+                {uploadingAudio ? (
                   <Loader2 className="w-4 h-4 animate-spin ml-2" />
                 ) : (
-                  <Video className="w-4 h-4 ml-2" />
+                  <Music className="w-4 h-4 ml-2" />
                 )}
-                {videoUrl ? "تغيير الفيديو" : "رفع فيديو"}
+                {audioUrl ? "تغيير الصوت" : "رفع ملف صوتي"}
               </Button>
             </div>
           </div>
-          {videoUrl && (
+          {audioUrl && (
             <div className="space-y-2">
               <Input 
-                value={videoUrl} 
-                onChange={(e) => setVideoUrl(e.target.value)}
-                placeholder="أو أدخل رابط الفيديو"
+                value={audioUrl} 
+                onChange={(e) => setAudioUrl(e.target.value)}
+                placeholder="أو أدخل رابط الصوت"
                 className="bg-input border-border"
               />
+              <audio src={audioUrl} controls className="w-full" />
               <Button 
                 variant="destructive" 
                 size="sm" 
-                onClick={() => setVideoUrl("")}
+                onClick={() => setAudioUrl("")}
                 className="w-full"
               >
-                إزالة الفيديو
+                إزالة الصوت
               </Button>
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            * اضغط M لتفعيل/إيقاف الصوت عند عرض الفيديو
+            * اضغط M لتفعيل/إيقاف الصوت في أي صفحة
           </p>
         </CardContent>
       </Card>
