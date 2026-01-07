@@ -111,9 +111,12 @@ export type Database = {
           created_at: string
           discord_username: string
           game_id: string
+          handled_by_discord: string | null
+          handled_by_email: string | null
           id: string
           items: Json
           order_number: string
+          rejection_reason: string | null
           status: string
           total: number
           user_id: string
@@ -124,9 +127,12 @@ export type Database = {
           created_at?: string
           discord_username: string
           game_id: string
+          handled_by_discord?: string | null
+          handled_by_email?: string | null
           id?: string
           items: Json
           order_number: string
+          rejection_reason?: string | null
           status?: string
           total: number
           user_id: string
@@ -137,9 +143,12 @@ export type Database = {
           created_at?: string
           discord_username?: string
           game_id?: string
+          handled_by_discord?: string | null
+          handled_by_email?: string | null
           id?: string
           items?: Json
           order_number?: string
+          rejection_reason?: string | null
           status?: string
           total?: number
           user_id?: string
