@@ -124,7 +124,7 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
             setIsMuted((prev) => !prev);
           }
         }}
-        className={`fixed bottom-4 right-4 z-40 flex items-center gap-2 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg transition-colors ${
+        className={`fixed bottom-4 left-4 z-40 flex items-center gap-2 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg transition-colors ${
           needsActivation 
             ? "bg-primary/90 hover:bg-primary animate-pulse" 
             : "bg-background/90 hover:bg-muted"
