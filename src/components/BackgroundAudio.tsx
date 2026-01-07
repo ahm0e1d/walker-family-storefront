@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX } from "lucide-react";
 
@@ -11,11 +11,20 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
   const [showHint, setShowHint] = useState(true);
   const [needsActivation, setNeedsActivation] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasInitialized = useRef(false);
+
+  const activateAudio = useCallback(() => {
+    if (audioRef.current && !isPlaying) {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        setNeedsActivation(false);
+      }).catch(console.error);
+    }
+  }, [isPlaying]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Support both English 'M' and Arabic 'م' for keyboard toggle
       const key = e.key.toLowerCase();
       if (key === "m" || key === "م" || e.code === "KeyM") {
         if (needsActivation) {
@@ -28,14 +37,12 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [needsActivation]);
+  }, [needsActivation, activateAudio]);
 
   useEffect(() => {
-    // Hide hint after 10 seconds
     const timer = setTimeout(() => {
       setShowHint(false);
     }, 10000);
-
     return () => clearTimeout(timer);
   }, []);
 
@@ -45,61 +52,61 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
     }
   }, [isMuted]);
 
-  // Try to play audio when component mounts
+  // Create and manage audio element manually to prevent duplicates
   useEffect(() => {
-    const audio = audioRef.current;
+    if (!audioUrl || hasInitialized.current) return;
     
-    if (audio && audioUrl) {
-      // Stop any currently playing audio first
-      audio.pause();
-      audio.currentTime = 0;
-      
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setNeedsActivation(false);
-          })
-          .catch(() => {
-            // Autoplay blocked, show activation button
-            setNeedsActivation(true);
-            setIsPlaying(false);
-          });
-      }
+    hasInitialized.current = true;
+    
+    // Create audio element programmatically
+    const audio = new Audio(audioUrl);
+    audio.loop = true;
+    audio.muted = isMuted;
+    audioRef.current = audio;
+    
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+          setNeedsActivation(false);
+        })
+        .catch(() => {
+          setNeedsActivation(true);
+          setIsPlaying(false);
+        });
     }
     
-    // Cleanup: stop audio when component unmounts or audioUrl changes
+    // Cleanup: stop and remove audio when component unmounts
     return () => {
       if (audio) {
         audio.pause();
-        audio.currentTime = 0;
+        audio.src = "";
+        audioRef.current = null;
+        hasInitialized.current = false;
       }
     };
   }, [audioUrl]);
 
-  const activateAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.play().then(() => {
-        setIsPlaying(true);
-        setNeedsActivation(false);
-      }).catch(console.error);
+  // Update audio src if URL changes
+  useEffect(() => {
+    if (audioRef.current && audioUrl && hasInitialized.current) {
+      const currentSrc = audioRef.current.src;
+      if (currentSrc !== audioUrl) {
+        audioRef.current.pause();
+        audioRef.current.src = audioUrl;
+        audioRef.current.load();
+        audioRef.current.play().catch(() => {
+          setNeedsActivation(true);
+        });
+      }
     }
-  };
+  }, [audioUrl]);
 
   if (!audioUrl) return null;
 
   return (
     <>
-      {/* Hidden Audio Element */}
-      <audio
-        ref={audioRef}
-        src={audioUrl}
-        autoPlay
-        loop
-        muted={isMuted}
-        style={{ display: "none" }}
-      />
 
       {/* Mute Hint - Fixed at top */}
       <AnimatePresence>
