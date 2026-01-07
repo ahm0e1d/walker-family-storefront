@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush } from "lucide-react";
+import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush, Video } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
 
 interface NavItem {
@@ -54,8 +54,11 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const [shopName, setShopName] = useState("Walker Family Shop");
   const [logoUrl, setLogoUrl] = useState("");
   const [themeColor, setThemeColor] = useState("red");
+  const [videoUrl, setVideoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,6 +89,9 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           }
           if (setting.key === "theme_color" && typeof setting.value === "string") {
             setThemeColor(setting.value);
+          }
+          if (setting.key === "video_url" && typeof setting.value === "string") {
+            setVideoUrl(setting.value);
           }
         });
       }
@@ -130,6 +136,43 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
       });
     } finally {
       setUploadingLogo(false);
+    }
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `video-${Date.now()}.${fileExt}`;
+      const filePath = `site/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setVideoUrl(urlData.publicUrl);
+      toast({
+        title: "تم رفع الفيديو",
+        description: "تم رفع الفيديو بنجاح. لا تنس حفظ الإعدادات."
+      });
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل في رفع الفيديو",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
@@ -182,6 +225,16 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           action: "update", 
           key: "theme_color", 
           value: themeColor,
+          admin_email: adminEmail
+        }
+      });
+
+      // Save video URL
+      await supabase.functions.invoke("manage-site-settings", {
+        body: { 
+          action: "update", 
+          key: "video_url", 
+          value: videoUrl,
           admin_email: adminEmail
         }
       });
@@ -319,7 +372,73 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-3">
-            * تغيير الثيم يتطلب تحديث ملف CSS يدوياً في الوقت الحالي
+            * سيتم تطبيق الثيم فوراً عند الحفظ
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Background Video */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Video className="w-5 h-5" />
+            فيديو الخلفية
+          </CardTitle>
+          <CardDescription>
+            رفع فيديو يظهر في أسفل الصفحة الرئيسية
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4">
+            {videoUrl && (
+              <div className="w-32 h-20 rounded-lg overflow-hidden bg-muted">
+                <video src={videoUrl} className="w-full h-full object-cover" muted />
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                type="file"
+                ref={videoInputRef}
+                onChange={handleVideoUpload}
+                accept="video/*"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="w-full"
+              >
+                {uploadingVideo ? (
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                ) : (
+                  <Video className="w-4 h-4 ml-2" />
+                )}
+                {videoUrl ? "تغيير الفيديو" : "رفع فيديو"}
+              </Button>
+            </div>
+          </div>
+          {videoUrl && (
+            <div className="space-y-2">
+              <Input 
+                value={videoUrl} 
+                onChange={(e) => setVideoUrl(e.target.value)}
+                placeholder="أو أدخل رابط الفيديو"
+                className="bg-input border-border"
+              />
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={() => setVideoUrl("")}
+                className="w-full"
+              >
+                إزالة الفيديو
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            * اضغط M لتفعيل/إيقاف الصوت عند عرض الفيديو
           </p>
         </CardContent>
       </Card>

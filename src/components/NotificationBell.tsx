@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Info, CheckCircle, AlertTriangle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+
+// Notification sound URL (using a simple bell sound)
+const NOTIFICATION_SOUND_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -25,6 +28,7 @@ interface Announcement {
   content: string;
   type: string;
   created_at: string;
+  is_active?: boolean;
 }
 
 const NotificationBell = () => {
@@ -32,6 +36,22 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [readIds, setReadIds] = useState<string[]>([]);
   const isMobile = useIsMobile();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const previousCountRef = useRef<number>(0);
+
+  // Initialize audio
+  useEffect(() => {
+    audioRef.current = new Audio(NOTIFICATION_SOUND_URL);
+    audioRef.current.volume = 0.5;
+  }, []);
+
+  // Play sound when new announcements arrive
+  const playNotificationSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(console.error);
+    }
+  };
 
   useEffect(() => {
     fetchAnnouncements();
@@ -39,6 +59,30 @@ const NotificationBell = () => {
     if (saved) {
       setReadIds(JSON.parse(saved));
     }
+
+    // Set up realtime subscription for new announcements
+    const channel = supabase
+      .channel("announcements-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "announcements",
+        },
+        (payload) => {
+          const newAnnouncement = payload.new as Announcement;
+          if (newAnnouncement.is_active !== false) {
+            setAnnouncements((prev) => [newAnnouncement, ...prev]);
+            playNotificationSound();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchAnnouncements = async () => {
