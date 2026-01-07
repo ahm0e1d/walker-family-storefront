@@ -23,6 +23,7 @@ import SiteAppearanceTab from "@/components/admin/SiteAppearanceTab";
 import AnnouncementsTab from "@/components/admin/AnnouncementsTab";
 import RolesTab from "@/components/admin/RolesTab";
 import CredentialsTab from "@/components/admin/CredentialsTab";
+import StatsCards from "@/components/admin/StatsCards";
 
 interface PendingUser {
   id: string;
@@ -908,6 +909,9 @@ const AdminPage = () => {
             تسجيل الخروج
           </Button>
         </div>
+
+        {/* Stats Cards */}
+        <StatsCards />
 
         <Tabs defaultValue={defaultTab} className="w-full">
           <div className="overflow-x-auto pb-2 mb-6 -mx-4 px-4">

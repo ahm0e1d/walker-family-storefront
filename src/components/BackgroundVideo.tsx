@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Video, X } from "lucide-react";
 
 interface BackgroundVideoProps {
   videoUrl: string;
 }
 
 const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Start with sound ON
+  const [isHidden, setIsHidden] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -89,48 +90,77 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
         )}
       </AnimatePresence>
 
-      {/* Small Video Box - Fixed at bottom right */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="fixed bottom-4 right-4 z-40 w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden shadow-2xl border border-border"
-      >
-        {/* Video */}
-        {isEmbed ? (
-          <iframe
-            src={getEmbedUrl(videoUrl)}
-            className="absolute inset-0 w-full h-full object-cover scale-150"
-            allow="autoplay; fullscreen"
-            style={{ border: "none" }}
-          />
-        ) : (
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted={isMuted}
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover"
+      {/* Show Video Button - When video is hidden */}
+      <AnimatePresence>
+        {isHidden && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={() => setIsHidden(false)}
+            className="fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg hover:bg-muted transition-colors"
           >
-            <source src={videoUrl} type="video/mp4" />
-          </video>
+            <Video className="w-5 h-5 text-primary" />
+            <span className="text-sm text-foreground">عرض الفيديو</span>
+          </motion.button>
         )}
+      </AnimatePresence>
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
+      {/* Small Video Box - Fixed at bottom right */}
+      <AnimatePresence>
+        {!isHidden && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            className="fixed bottom-4 right-4 z-40 w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden shadow-2xl border border-border"
+          >
+            {/* Hide Button */}
+            <button
+              onClick={() => setIsHidden(true)}
+              className="absolute top-1 right-1 z-10 p-1 bg-background/80 backdrop-blur-sm border border-border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
 
-        {/* Mute/Unmute Button inside video box */}
-        <button
-          onClick={() => setIsMuted((prev) => !prev)}
-          className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm border border-border px-2 py-1 rounded-lg hover:bg-muted transition-colors"
-        >
-          {isMuted ? (
-            <VolumeX className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <Volume2 className="w-4 h-4 text-primary" />
-          )}
-        </button>
-      </motion.div>
+            {/* Video */}
+            {isEmbed ? (
+              <iframe
+                src={getEmbedUrl(videoUrl)}
+                className="absolute inset-0 w-full h-full object-cover scale-150"
+                allow="autoplay; fullscreen"
+                style={{ border: "none" }}
+              />
+            ) : (
+              <video
+                ref={videoRef}
+                autoPlay
+                loop
+                muted={isMuted}
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              >
+                <source src={videoUrl} type="video/mp4" />
+              </video>
+            )}
+
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
+
+            {/* Mute/Unmute Button inside video box */}
+            <button
+              onClick={() => setIsMuted((prev) => !prev)}
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm border border-border px-2 py-1 rounded-lg hover:bg-muted transition-colors"
+            >
+              {isMuted ? (
+                <VolumeX className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-primary" />
+              )}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
