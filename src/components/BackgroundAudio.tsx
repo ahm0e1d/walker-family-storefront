@@ -9,6 +9,8 @@ interface BackgroundAudioProps {
 const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
   const [isMuted, setIsMuted] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const [needsActivation, setNeedsActivation] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -16,13 +18,17 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
       // Support both English 'M' and Arabic 'م' for keyboard toggle
       const key = e.key.toLowerCase();
       if (key === "m" || key === "م" || e.code === "KeyM") {
-        setIsMuted((prev) => !prev);
+        if (needsActivation) {
+          activateAudio();
+        } else {
+          setIsMuted((prev) => !prev);
+        }
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [needsActivation]);
 
   useEffect(() => {
     // Hide hint after 10 seconds
@@ -42,12 +48,30 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
   // Try to play audio when component mounts
   useEffect(() => {
     if (audioRef.current && audioUrl) {
-      audioRef.current.play().catch(() => {
-        // Autoplay blocked, user needs to interact first
-        console.log("Autoplay blocked, waiting for user interaction");
-      });
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setNeedsActivation(false);
+          })
+          .catch(() => {
+            // Autoplay blocked, show activation button
+            setNeedsActivation(true);
+            setIsPlaying(false);
+          });
+      }
     }
   }, [audioUrl]);
+
+  const activateAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+        setNeedsActivation(false);
+      }).catch(console.error);
+    }
+  };
 
   if (!audioUrl) return null;
 
@@ -93,10 +117,25 @@ const BackgroundAudio = ({ audioUrl }: BackgroundAudioProps) => {
       <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        onClick={() => setIsMuted((prev) => !prev)}
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg hover:bg-muted transition-colors"
+        onClick={() => {
+          if (needsActivation) {
+            activateAudio();
+          } else {
+            setIsMuted((prev) => !prev);
+          }
+        }}
+        className={`fixed bottom-4 right-4 z-40 flex items-center gap-2 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg transition-colors ${
+          needsActivation 
+            ? "bg-primary/90 hover:bg-primary animate-pulse" 
+            : "bg-background/90 hover:bg-muted"
+        }`}
       >
-        {isMuted ? (
+        {needsActivation ? (
+          <>
+            <Volume2 className="w-5 h-5 text-primary-foreground" />
+            <span className="text-sm text-primary-foreground font-medium">اضغط لتشغيل الصوت</span>
+          </>
+        ) : isMuted ? (
           <>
             <VolumeX className="w-5 h-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">الصوت مكتوم</span>
