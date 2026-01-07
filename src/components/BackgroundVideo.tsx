@@ -7,23 +7,31 @@ interface BackgroundVideoProps {
 }
 
 const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
-  const [isMuted, setIsMuted] = useState(false); // Start with sound ON
+  // Check if URL is embeddable (YouTube, etc.) or direct video
+  const isYouTube = videoUrl?.includes("youtube.com") || videoUrl?.includes("youtu.be");
+  const isVimeo = videoUrl?.includes("vimeo.com");
+  const isEmbed = isYouTube || isVimeo;
+
+  // For YouTube/Vimeo, must start muted for autoplay to work (browser policy)
+  const [isMuted, setIsMuted] = useState(isEmbed ? true : false);
   const [isHidden, setIsHidden] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const [embedKey, setEmbedKey] = useState(0); // Key to force iframe reload
   const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       // Support both English 'M' and Arabic 'م' for keyboard toggle
       const key = e.key.toLowerCase();
       if (key === "m" || key === "م" || e.code === "KeyM") {
-        setIsMuted((prev) => !prev);
+        handleToggleMute();
       }
     };
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, []);
+  }, [isMuted]);
 
   useEffect(() => {
     // Hide hint after 10 seconds
@@ -40,27 +48,45 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
     }
   }, [isMuted]);
 
+  const handleToggleMute = () => {
+    setIsMuted((prev) => {
+      const newMuted = !prev;
+      // For embeds, we need to reload the iframe to change mute state
+      if (isEmbed) {
+        setEmbedKey((k) => k + 1);
+      }
+      return newMuted;
+    });
+  };
+
   if (!videoUrl) return null;
 
-  // Check if URL is embeddable (YouTube, etc.) or direct video
-  const isYouTube = videoUrl.includes("youtube.com") || videoUrl.includes("youtu.be");
-  const isVimeo = videoUrl.includes("vimeo.com");
-  
+  const getYouTubeVideoId = (url: string) => {
+    if (url.includes("youtu.be")) {
+      return url.split("youtu.be/")[1]?.split("?")[0];
+    }
+    if (url.includes("youtube.com/watch")) {
+      return url.split("v=")[1]?.split("&")[0];
+    }
+    if (url.includes("youtube.com/embed")) {
+      return url.split("embed/")[1]?.split("?")[0];
+    }
+    return null;
+  };
+
   const getEmbedUrl = (url: string) => {
     if (isYouTube) {
-      const videoId = url.includes("youtu.be") 
-        ? url.split("youtu.be/")[1]?.split("?")[0]
-        : url.split("v=")[1]?.split("&")[0];
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1`;
+      const videoId = getYouTubeVideoId(url);
+      // enablejsapi=1 allows us to control the player
+      // For autoplay to work, mute=1 is required by browsers
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=${isMuted ? 1 : 0}&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
     }
     if (isVimeo) {
       const videoId = url.split("vimeo.com/")[1]?.split("?")[0];
-      return `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=${isMuted ? 1 : 0}&loop=1&background=1`;
+      return `https://player.vimeo.com/video/${videoId}?autoplay=1&muted=${isMuted ? 1 : 0}&loop=1&background=1&playsinline=1`;
     }
     return url;
   };
-
-  const isEmbed = isYouTube || isVimeo;
 
   return (
     <>
@@ -126,9 +152,12 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
             {/* Video */}
             {isEmbed ? (
               <iframe
+                key={embedKey}
+                ref={iframeRef}
                 src={getEmbedUrl(videoUrl)}
                 className="absolute inset-0 w-full h-full object-cover scale-150"
-                allow="autoplay; fullscreen"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
                 style={{ border: "none" }}
               />
             ) : (
@@ -149,7 +178,7 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
 
             {/* Mute/Unmute Button inside video box */}
             <button
-              onClick={() => setIsMuted((prev) => !prev)}
+              onClick={handleToggleMute}
               className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm border border-border px-2 py-1 rounded-lg hover:bg-muted transition-colors"
             >
               {isMuted ? (
