@@ -62,39 +62,15 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
   const isEmbed = isYouTube || isVimeo;
 
   return (
-    <section className="fixed bottom-0 left-0 right-0 h-[30vh] md:h-[35vh] overflow-hidden z-10 pointer-events-none">
-      {/* Video Background */}
-      {isEmbed ? (
-        <iframe
-          src={getEmbedUrl(videoUrl)}
-          className="absolute inset-0 w-full h-full object-cover scale-150"
-          allow="autoplay; fullscreen"
-          style={{ border: "none" }}
-        />
-      ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted={isMuted}
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src={videoUrl} type="video/mp4" />
-        </video>
-      )}
-
-      {/* Overlay for better visibility */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-
-      {/* Mute Hint */}
+    <>
+      {/* Mute Hint - Fixed at top */}
       <AnimatePresence>
         {showHint && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-auto"
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-50"
           >
             <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border px-4 py-2 rounded-full shadow-lg">
               {isMuted ? (
@@ -113,30 +89,49 @@ const BackgroundVideo = ({ videoUrl }: BackgroundVideoProps) => {
         )}
       </AnimatePresence>
 
-      {/* Mute/Unmute Button - Always visible for mobile and desktop */}
+      {/* Small Video Box - Fixed at bottom right */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="absolute bottom-4 right-4 z-20 pointer-events-auto"
+        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="fixed bottom-4 right-4 z-40 w-32 h-32 md:w-40 md:h-40 rounded-xl overflow-hidden shadow-2xl border border-border"
       >
+        {/* Video */}
+        {isEmbed ? (
+          <iframe
+            src={getEmbedUrl(videoUrl)}
+            className="absolute inset-0 w-full h-full object-cover scale-150"
+            allow="autoplay; fullscreen"
+            style={{ border: "none" }}
+          />
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src={videoUrl} type="video/mp4" />
+          </video>
+        )}
+
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
+
+        {/* Mute/Unmute Button inside video box */}
         <button
           onClick={() => setIsMuted((prev) => !prev)}
-          className="flex items-center gap-2 bg-background/80 backdrop-blur-sm border border-border px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/80 backdrop-blur-sm border border-border px-2 py-1 rounded-lg hover:bg-muted transition-colors"
         >
           {isMuted ? (
-            <>
-              <VolumeX className="w-5 h-5 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">صوت مكتوم</span>
-            </>
+            <VolumeX className="w-4 h-4 text-muted-foreground" />
           ) : (
-            <>
-              <Volume2 className="w-5 h-5 text-primary" />
-              <span className="text-sm text-primary">صوت مفعل</span>
-            </>
+            <Volume2 className="w-4 h-4 text-primary" />
           )}
         </button>
       </motion.div>
-    </section>
+    </>
   );
 };
 
