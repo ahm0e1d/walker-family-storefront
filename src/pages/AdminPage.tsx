@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Save, Trash2, Edit2, LogOut, Loader2, ShieldAlert, Sparkles, Users, Check, X, RefreshCw, Package, ShoppingBag, CheckCircle, UserCheck, UserX, ScrollText, Shield, Ban, UserPlus, Palette, Bell, Crown, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import AnnouncementsTab from "@/components/admin/AnnouncementsTab";
 import RolesTab from "@/components/admin/RolesTab";
 import CredentialsTab from "@/components/admin/CredentialsTab";
 import StatsCards from "@/components/admin/StatsCards";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 
 interface PendingUser {
   id: string;
@@ -159,6 +160,17 @@ const AdminPage = () => {
     image: "",
     rating: "5",
   });
+
+  // Callback for when a new pending user is detected
+  const handleNewPendingUser = useCallback(() => {
+    fetchPendingUsers();
+  }, []);
+
+  // Enable admin notifications for new activation requests
+  useAdminNotifications(
+    canAccessAdmin && hasPermission('users'),
+    handleNewPendingUser
+  );
 
   useEffect(() => {
     if (!authLoading && !user) {
