@@ -9,12 +9,13 @@ interface NewPendingUser {
   created_at: string;
 }
 
-// Singleton for notification sound
+// Global singleton to prevent duplicate notifications across component remounts
+const notifiedUsers = new Set<string>();
 let notificationAudio: HTMLAudioElement | null = null;
+let isInitialized = false;
 
 const getNotificationSound = () => {
   if (!notificationAudio) {
-    // Using a simple notification sound URL
     notificationAudio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
     notificationAudio.volume = 0.5;
   }
@@ -26,8 +27,7 @@ export const useAdminNotifications = (
   onNewPendingUser?: (user: NewPendingUser) => void
 ) => {
   const { toast } = useToast();
-  const hasPlayedRef = useRef<Set<string>>(new Set());
-  const isFirstLoadRef = useRef(true);
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const playNotificationSound = useCallback(() => {
     try {
@@ -46,8 +46,7 @@ export const useAdminNotifications = (
       toast({
         title: "🔔 طلب تفعيل جديد!",
         description: `${user.discord_username} يطلب تفعيل حسابه`,
-        duration: 10000,
-        className: "bg-primary text-primary-foreground border-primary animate-pulse",
+        duration: 8000,
       });
     },
     [toast]
@@ -56,13 +55,16 @@ export const useAdminNotifications = (
   useEffect(() => {
     if (!isEnabled) return;
 
-    // Reset first load flag after initial render
-    const timer = setTimeout(() => {
-      isFirstLoadRef.current = false;
-    }, 3000);
+    // Prevent duplicate subscriptions
+    if (channelRef.current) return;
 
-    const channel = supabase
-      .channel("pending_users_notifications")
+    // Delay initialization to skip existing data on first load
+    const initTimer = setTimeout(() => {
+      isInitialized = true;
+    }, 5000);
+
+    channelRef.current = supabase
+      .channel("admin_pending_notifications")
       .on(
         "postgres_changes",
         {
@@ -71,16 +73,18 @@ export const useAdminNotifications = (
           table: "pending_users",
         },
         (payload) => {
+          // Skip if not initialized yet (first load)
+          if (!isInitialized) return;
+
           const newUser = payload.new as NewPendingUser;
-          
-          // Skip if we've already notified for this user or if it's the first load
-          if (hasPlayedRef.current.has(newUser.id) || isFirstLoadRef.current) {
-            return;
-          }
 
-          hasPlayedRef.current.add(newUser.id);
+          // Skip if already notified for this user (global check)
+          if (notifiedUsers.has(newUser.id)) return;
 
-          // Play sound and show visual notification
+          // Mark as notified globally
+          notifiedUsers.add(newUser.id);
+
+          // Play sound and show notification
           playNotificationSound();
           showVisualNotification(newUser);
 
@@ -91,8 +95,11 @@ export const useAdminNotifications = (
       .subscribe();
 
     return () => {
-      clearTimeout(timer);
-      supabase.removeChannel(channel);
+      clearTimeout(initTimer);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [isEnabled, playNotificationSound, showVisualNotification, onNewPendingUser]);
 
