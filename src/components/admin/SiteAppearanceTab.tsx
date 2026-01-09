@@ -58,8 +58,10 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const [videoUrl, setVideoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -177,6 +179,43 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
       });
     } finally {
       setUploadingAudio(false);
+    }
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `video-${Date.now()}.${fileExt}`;
+      const filePath = `site/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      setVideoUrl(urlData.publicUrl);
+      toast({
+        title: "تم رفع الفيديو",
+        description: "تم رفع الفيديو بنجاح. لا تنس حفظ الإعدادات."
+      });
+    } catch (error) {
+      console.error("Error uploading video:", error);
+      toast({
+        title: "خطأ",
+        description: "فشل في رفع الفيديو",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
@@ -460,10 +499,52 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
             فيديو الخلفية
           </CardTitle>
           <CardDescription>
-            الصق رابط فيديو ليظهر في مربع صغير بالموقع
+            رفع فيديو أو لصق رابط ليظهر في مربع صغير بالموقع
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Upload Video */}
+          <div className="flex items-center gap-4">
+            {videoUrl && (
+              <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                <Video className="w-8 h-8 text-primary" />
+              </div>
+            )}
+            <div className="flex-1">
+              <input
+                type="file"
+                ref={videoInputRef}
+                onChange={handleVideoUpload}
+                accept="video/*"
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                className="w-full"
+              >
+                {uploadingVideo ? (
+                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
+                ) : (
+                  <Video className="w-4 h-4 ml-2" />
+                )}
+                {videoUrl ? "تغيير الفيديو" : "رفع فيديو من الجهاز"}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Or paste URL */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">أو</span>
+            </div>
+          </div>
+          
           <div>
             <Label>رابط الفيديو</Label>
             <Input 
@@ -474,6 +555,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
               dir="ltr"
             />
           </div>
+          
           {videoUrl && (
             <div className="space-y-2">
               <div className="rounded-lg overflow-hidden bg-muted aspect-video max-w-xs">
