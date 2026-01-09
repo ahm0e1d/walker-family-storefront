@@ -8,7 +8,7 @@ import { ShopProvider } from "@/context/ShopContext";
 import { AuthProvider } from "@/context/AuthContext";
 import useTheme from "@/hooks/useTheme";
 import Navbar from "@/components/Navbar";
-import BackgroundAudio from "@/components/BackgroundAudio";
+import BackgroundMedia from "@/components/BackgroundMedia";
 import HomePage from "@/pages/HomePage";
 import ProductsPage from "@/pages/ProductsPage";
 import CartPage from "@/pages/CartPage";
@@ -38,8 +38,8 @@ const App = () => {
             <ThemeInitializer />
             <Toaster />
             <Sonner />
-            {/* Background Audio - Outside Router to prevent remounting */}
-            <BackgroundAudio />
+            {/* Background Media - Outside Router to prevent remounting */}
+            <BackgroundMedia />
             <BrowserRouter>
               <Navbar />
               <Routes>
