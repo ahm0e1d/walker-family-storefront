@@ -3,53 +3,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Video, X, Minimize2, Maximize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-type MediaType = "audio" | "video" | null;
-
-// Helper to detect media type from URL
-const detectMediaType = (url: string): MediaType => {
-  if (!url) return null;
-  const lowerUrl = url.toLowerCase();
-  
-  // Check for video extensions
-  if (
-    lowerUrl.includes(".mp4") ||
-    lowerUrl.includes(".webm") ||
-    lowerUrl.includes(".mov") ||
-    lowerUrl.includes(".avi") ||
-    lowerUrl.includes(".mkv") ||
-    lowerUrl.includes("video")
-  ) {
-    return "video";
-  }
-  
-  // Check for audio extensions
-  if (
-    lowerUrl.includes(".mp3") ||
-    lowerUrl.includes(".wav") ||
-    lowerUrl.includes(".ogg") ||
-    lowerUrl.includes(".m4a") ||
-    lowerUrl.includes(".aac") ||
-    lowerUrl.includes("audio")
-  ) {
-    return "audio";
-  }
-  
-  // Default to audio for unknown
-  return "audio";
-};
-
 // Global media manager - completely outside React lifecycle
 class MediaManager {
   private static instance: MediaManager;
   private audio: HTMLAudioElement | null = null;
-  private currentUrl: string = "";
   private listeners: Set<() => void> = new Set();
   
   public isMuted: boolean = false;
   public isPlaying: boolean = false;
   public needsActivation: boolean = false;
-  public mediaType: MediaType = null;
-  public mediaUrl: string = "";
+  public audioUrl: string = "";
+  public videoUrl: string = "";
 
   private constructor() {}
 
@@ -69,48 +33,38 @@ class MediaManager {
     this.listeners.forEach(listener => listener());
   }
 
-  async initialize(url: string) {
-    if (!url) return;
-    
-    const type = detectMediaType(url);
-    this.mediaType = type;
-    this.mediaUrl = url;
-
-    // For video, we don't use AudioManager - the video element handles it
-    if (type === "video") {
-      // Clean up any existing audio
+  async initializeAudio(url: string) {
+    if (!url) {
+      // Clear audio if URL is empty
       if (this.audio) {
         this.audio.pause();
         this.audio.src = "";
         this.audio = null;
       }
-      this.currentUrl = url;
-      this.needsActivation = true;
-      this.isPlaying = false;
+      this.audioUrl = "";
       this.notify();
       return;
     }
     
-    // Audio handling
     // Already playing this URL
-    if (this.audio && this.currentUrl === url && !this.audio.paused) {
+    if (this.audio && this.audioUrl === url && !this.audio.paused) {
       return;
     }
 
     // Same URL but paused (needs activation)
-    if (this.audio && this.currentUrl === url) {
+    if (this.audio && this.audioUrl === url) {
       return;
     }
 
     // New URL - cleanup old audio
-    if (this.audio && this.currentUrl !== url) {
+    if (this.audio && this.audioUrl !== url) {
       this.audio.pause();
       this.audio.src = "";
       this.audio = null;
     }
 
     // Create new audio
-    this.currentUrl = url;
+    this.audioUrl = url;
     this.audio = new Audio(url);
     this.audio.loop = true;
     this.audio.muted = this.isMuted;
@@ -126,15 +80,15 @@ class MediaManager {
     this.notify();
   }
 
-  async activate() {
-    if (this.mediaType === "video") {
-      // Video activation is handled by the video element itself
-      this.needsActivation = false;
-      this.isPlaying = true;
-      this.notify();
-      return;
+  setVideoUrl(url: string) {
+    this.videoUrl = url;
+    if (url && !this.audioUrl) {
+      this.needsActivation = true;
     }
+    this.notify();
+  }
 
+  async activateAudio() {
     if (this.audio && !this.isPlaying) {
       try {
         await this.audio.play();
@@ -178,8 +132,10 @@ class MediaManager {
       isMuted: this.isMuted,
       isPlaying: this.isPlaying,
       needsActivation: this.needsActivation,
-      mediaType: this.mediaType,
-      mediaUrl: this.mediaUrl,
+      audioUrl: this.audioUrl,
+      videoUrl: this.videoUrl,
+      hasAudio: !!this.audioUrl,
+      hasVideo: !!this.videoUrl,
     };
   }
 }
@@ -192,6 +148,7 @@ const BackgroundMedia = () => {
   const [showHint, setShowHint] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showVideo, setShowVideo] = useState(true);
+  const [videoNeedsActivation, setVideoNeedsActivation] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Subscribe to media manager changes
@@ -202,17 +159,23 @@ const BackgroundMedia = () => {
     return () => { unsubscribe(); };
   }, []);
 
-  // Fetch media URL and initialize
+  // Fetch media URLs and initialize
   useEffect(() => {
     const fetchAndInitialize = async () => {
       const { data } = await supabase
         .from("site_settings")
-        .select("value")
-        .eq("key", "audio_url")
-        .single();
+        .select("key, value")
+        .in("key", ["audio_url", "video_url"]);
       
-      if (data && typeof data.value === "string" && data.value) {
-        mediaManager.initialize(data.value);
+      if (data) {
+        data.forEach((setting) => {
+          if (setting.key === "audio_url" && typeof setting.value === "string" && setting.value) {
+            mediaManager.initializeAudio(setting.value);
+          }
+          if (setting.key === "video_url" && typeof setting.value === "string" && setting.value) {
+            mediaManager.setVideoUrl(setting.value);
+          }
+        });
       }
     };
     
@@ -225,21 +188,14 @@ const BackgroundMedia = () => {
       try {
         videoRef.current.muted = state.isMuted;
         await videoRef.current.play();
+        setVideoNeedsActivation(false);
         mediaManager.setPlaying(true);
-        mediaManager.setNeedsActivation(false);
       } catch (e) {
         console.error("Failed to play video:", e);
-        mediaManager.setNeedsActivation(true);
+        setVideoNeedsActivation(true);
       }
     }
   }, [state.isMuted]);
-
-  // Auto-play video when ready
-  useEffect(() => {
-    if (state.mediaType === "video" && videoRef.current && !state.needsActivation) {
-      handleVideoPlay();
-    }
-  }, [state.mediaType, state.needsActivation, handleVideoPlay]);
 
   // Handle video mute state
   useEffect(() => {
@@ -253,10 +209,10 @@ const BackgroundMedia = () => {
     const handleKeyPress = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       if (key === "m" || key === "م" || e.code === "KeyM") {
-        if (state.needsActivation && state.mediaType === "video") {
+        if (state.needsActivation && state.hasAudio) {
+          mediaManager.activateAudio();
+        } else if (videoNeedsActivation && state.hasVideo) {
           handleVideoPlay();
-        } else if (state.needsActivation) {
-          mediaManager.activate();
         } else {
           mediaManager.toggleMute();
         }
@@ -265,7 +221,7 @@ const BackgroundMedia = () => {
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [state.needsActivation, state.mediaType, handleVideoPlay]);
+  }, [state.needsActivation, state.hasAudio, state.hasVideo, videoNeedsActivation, handleVideoPlay]);
 
   // Hide hint after 10 seconds
   useEffect(() => {
@@ -274,12 +230,10 @@ const BackgroundMedia = () => {
   }, []);
 
   const handleClick = () => {
-    if (state.needsActivation) {
-      if (state.mediaType === "video") {
-        handleVideoPlay();
-      } else {
-        mediaManager.activate();
-      }
+    if (state.needsActivation && state.hasAudio) {
+      mediaManager.activateAudio();
+    } else if (videoNeedsActivation && state.hasVideo) {
+      handleVideoPlay();
     } else {
       mediaManager.toggleMute();
     }
@@ -290,14 +244,20 @@ const BackgroundMedia = () => {
     if (videoRef.current) {
       videoRef.current.muted = true;
     }
-    mediaManager.setMuted(true);
   };
+
+  const hasAnyMedia = state.hasAudio || state.hasVideo;
+  const needsAnyActivation = (state.needsActivation && state.hasAudio) || (videoNeedsActivation && state.hasVideo);
+
+  if (!hasAnyMedia) {
+    return null;
+  }
 
   return (
     <>
       {/* Video Player Box */}
       <AnimatePresence>
-        {state.mediaType === "video" && showVideo && (
+        {state.hasVideo && showVideo && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ 
@@ -337,7 +297,7 @@ const BackgroundMedia = () => {
             {/* Video Element */}
             <video
               ref={videoRef}
-              src={state.mediaUrl}
+              src={state.videoUrl}
               loop
               playsInline
               muted={state.isMuted}
@@ -346,7 +306,7 @@ const BackgroundMedia = () => {
             />
 
             {/* Play overlay when needs activation */}
-            {state.needsActivation && (
+            {videoNeedsActivation && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -398,12 +358,12 @@ const BackgroundMedia = () => {
         animate={{ opacity: 1, scale: 1 }}
         onClick={handleClick}
         className={`fixed bottom-4 left-4 z-40 flex items-center gap-2 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg transition-colors ${
-          state.needsActivation 
+          needsAnyActivation 
             ? "bg-primary/90 hover:bg-primary animate-pulse" 
             : "bg-background/90 hover:bg-muted"
         }`}
       >
-        {state.needsActivation ? (
+        {needsAnyActivation ? (
           <>
             <Volume2 className="w-5 h-5 text-primary-foreground" />
             <span className="text-sm text-primary-foreground font-medium">اضغط لتشغيل الصوت</span>
@@ -422,13 +382,12 @@ const BackgroundMedia = () => {
       </motion.button>
 
       {/* Show video button if hidden */}
-      {state.mediaType === "video" && !showVideo && (
+      {state.hasVideo && !showVideo && (
         <motion.button
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           onClick={() => {
             setShowVideo(true);
-            mediaManager.setMuted(false);
           }}
           className="fixed bottom-4 left-48 z-40 flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border px-3 py-2 rounded-xl shadow-lg hover:bg-muted transition-colors"
         >

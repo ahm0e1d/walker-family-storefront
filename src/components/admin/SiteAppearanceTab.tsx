@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush, Music } from "lucide-react";
+import { Loader2, GripVertical, Save, Palette, Sparkles, Home, Package, ShoppingCart, ScrollText, MessageCircle, Image, Type, Paintbrush, Music, Video } from "lucide-react";
 import { motion, Reorder } from "framer-motion";
 
 interface NavItem {
@@ -55,6 +55,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
   const [logoUrl, setLogoUrl] = useState("");
   const [themeColor, setThemeColor] = useState("red");
   const [audioUrl, setAudioUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +93,9 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           }
           if (setting.key === "audio_url" && typeof setting.value === "string") {
             setAudioUrl(setting.value);
+          }
+          if (setting.key === "video_url" && typeof setting.value === "string") {
+            setVideoUrl(setting.value);
           }
         });
       }
@@ -239,6 +243,16 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
         }
       });
 
+      // Save video URL
+      await supabase.functions.invoke("manage-site-settings", {
+        body: { 
+          action: "update", 
+          key: "video_url", 
+          value: videoUrl,
+          admin_email: adminEmail
+        }
+      });
+
       toast({
         title: "تم الحفظ",
         description: "تم حفظ إعدادات المظهر بنجاح. أعد تحميل الصفحة لرؤية التغييرات."
@@ -382,7 +396,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Music className="w-5 h-5" />
-            الصوت الخلفي
+            الصوت الخلفي (MP3)
           </CardTitle>
           <CardDescription>
             رفع ملف صوتي يشتغل في خلفية الموقع
@@ -400,7 +414,7 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
                 type="file"
                 ref={audioInputRef}
                 onChange={handleAudioUpload}
-                accept="audio/*,video/*"
+                accept="audio/*"
                 className="hidden"
               />
               <Button
@@ -421,12 +435,6 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
           </div>
           {audioUrl && (
             <div className="space-y-2">
-              <Input 
-                value={audioUrl} 
-                onChange={(e) => setAudioUrl(e.target.value)}
-                placeholder="أو أدخل رابط الصوت"
-                className="bg-input border-border"
-              />
               <audio src={audioUrl} controls className="w-full" />
               <Button 
                 variant="destructive" 
@@ -439,7 +447,50 @@ const SiteAppearanceTab = ({ adminEmail }: SiteAppearanceTabProps) => {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            * اضغط M لتفعيل/إيقاف الصوت في أي صفحة
+            * الصوت يشتغل في الخلفية بدون مربع مرئي
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Background Video */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Video className="w-5 h-5" />
+            فيديو الخلفية
+          </CardTitle>
+          <CardDescription>
+            الصق رابط فيديو ليظهر في مربع صغير بالموقع
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>رابط الفيديو</Label>
+            <Input 
+              value={videoUrl} 
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder="https://example.com/video.mp4"
+              className="bg-input border-border mt-2"
+              dir="ltr"
+            />
+          </div>
+          {videoUrl && (
+            <div className="space-y-2">
+              <div className="rounded-lg overflow-hidden bg-muted aspect-video max-w-xs">
+                <video src={videoUrl} controls className="w-full h-full object-cover" />
+              </div>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                onClick={() => setVideoUrl("")}
+                className="w-full max-w-xs"
+              >
+                إزالة الفيديو
+              </Button>
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground">
+            * الفيديو يظهر في مربع صغير بالزاوية مع إمكانية التصغير/الإخفاء
           </p>
         </CardContent>
       </Card>
