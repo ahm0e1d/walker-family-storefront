@@ -3,6 +3,31 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Video, X, Minimize2, Maximize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Helper to detect if URL is YouTube and convert to embed URL
+const getYouTubeEmbedUrl = (url: string): string | null => {
+  if (!url) return null;
+  
+  // Match various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}?autoplay=1&loop=1&playlist=${match[1]}&mute=1&controls=0&showinfo=0&rel=0`;
+    }
+  }
+  
+  return null;
+};
+
+const isYouTubeUrl = (url: string): boolean => {
+  if (!url) return false;
+  return url.includes("youtube.com") || url.includes("youtu.be");
+};
+
 // Global media manager - completely outside React lifecycle
 class MediaManager {
   private static instance: MediaManager;
@@ -248,6 +273,8 @@ const BackgroundMedia = () => {
 
   const hasAnyMedia = state.hasAudio || state.hasVideo;
   const needsAnyActivation = (state.needsActivation && state.hasAudio) || (videoNeedsActivation && state.hasVideo);
+  const isYouTube = isYouTubeUrl(state.videoUrl);
+  const youtubeEmbedUrl = getYouTubeEmbedUrl(state.videoUrl);
 
   if (!hasAnyMedia) {
     return null;
@@ -294,33 +321,45 @@ const BackgroundMedia = () => {
               <Video className="w-3 h-3 text-white/70" />
             </div>
 
-            {/* Video Element */}
-            <video
-              ref={videoRef}
-              src={state.videoUrl}
-              loop
-              playsInline
-              muted={state.isMuted}
-              className="w-full h-full object-cover cursor-pointer"
-              onClick={handleClick}
-            />
+            {/* Video Element - YouTube iframe or regular video */}
+            {isYouTube && youtubeEmbedUrl ? (
+              <iframe
+                src={youtubeEmbedUrl}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                style={{ border: 0 }}
+              />
+            ) : (
+              <>
+                <video
+                  ref={videoRef}
+                  src={state.videoUrl}
+                  loop
+                  playsInline
+                  muted={state.isMuted}
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={handleClick}
+                />
 
-            {/* Play overlay when needs activation */}
-            {videoNeedsActivation && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer"
-                onClick={handleVideoPlay}
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="bg-primary/90 rounded-full p-3"
-                >
-                  <Volume2 className="w-6 h-6 text-primary-foreground" />
-                </motion.div>
-              </motion.div>
+                {/* Play overlay when needs activation */}
+                {videoNeedsActivation && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 cursor-pointer"
+                    onClick={handleVideoPlay}
+                  >
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="bg-primary/90 rounded-full p-3"
+                    >
+                      <Volume2 className="w-6 h-6 text-primary-foreground" />
+                    </motion.div>
+                  </motion.div>
+                )}
+              </>
             )}
           </motion.div>
         )}
